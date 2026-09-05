@@ -248,6 +248,52 @@ body {
     width: 357px;
 }
 
+#fpToggle {
+    position: absolute;
+    top: 72px;
+    left: 356px;
+    width: 24px;
+    height: 23px;
+    padding: 0;
+    font-size: 11px;
+    line-height: 23px;
+    text-align: center;
+    color: rgb(255, 255, 255);
+    background-color: rgb(44, 173, 255);
+    border: none;
+    border-radius: 0 2px 2px 0;
+    cursor: pointer;
+}
+#fpHistory {
+    position: absolute;
+    top: 95px;
+    left: 15px;
+    width: 365px;
+    max-height: 92px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    overflow-y: auto;
+    background-color: rgb(255, 255, 255);
+    border: 1px solid rgb(131, 131, 131);
+    border-radius: 2px;
+    box-shadow: rgba(0, 0, 0, 0.15) 0px 2px 4px;
+    font-size: 13.3px;
+    z-index: 1000;
+    display: none;
+}
+#fpHistory li {
+    padding: 3px 6px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: pointer;
+}
+#fpHistory li:hover,
+#fpHistory li.active {
+    background-color: rgba(44, 173, 255, 0.34);
+}
+
 .s1 {
 	position: absolute;
     top: 200px;
@@ -313,7 +359,9 @@ body {
           
         </p>
         <input class="gwd-input-oy8k gwd-input-15ah gwd-input-1p65" id="fn">
-        <input class="gwd-input-oy8k gwd-input-15ah gwd-input-8u7r" id="fp">
+        <input class="gwd-input-oy8k gwd-input-15ah gwd-input-8u7r" id="fp" autocomplete="off">
+        <button type="button" id="fpToggle" tabindex="-1">&#9662;</button>
+        <ul id="fpHistory"></ul>
         <input class="gwd-input-oy8k gwd-input-4p45 gwd-gen-1g7fgwdanimation" id="url">
 		<select class="s1">
 			<option data-message="OP_rpcDefault" value="1">Default Server</option>

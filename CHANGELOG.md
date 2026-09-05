@@ -1,3 +1,44 @@
+# Aria2 Integration NG
+
+A personal fork of [Aria2 Download Manager Integration](https://addons.mozilla.org/firefox/addon/aria2-integration/),
+self-signed and distributed as an unlisted add-on (not on AMO). Extension ID
+`aria2-integration-ng@springer`. Upstream release history is preserved below.
+
+## 0.4.5 (NG) — 2026-09-05
+
+First NG build, signed via the AMO unlisted channel.
+
+### Features
+
+* Download pop-up **File Path** field is now a combobox with per-RPC-server
+  history — pre-fills the most recent path, drop-down of previous paths, free
+  text entry. Custom drop-down styled to match the pop-up (replaces the native
+  `<datalist>`). History is capped at 10 paths per server, newest first; only
+  the aria2 *Download* action records a path.
+* New **Options → Path History** page — add paths manually, remove individual
+  entries, clear a server's list.
+
+### Changed
+
+* Renamed to **Aria2 Integration NG**; localized name updated in all four
+  locales.
+* Extension ID `{e2488817-…}` → `aria2-integration-ng@springer`. Firefox treats
+  this as a new add-on, so existing `storage.local` settings do not carry over.
+* `applications.gecko.strict_min_version` `57.0` → `58.0` (AMO minimum).
+* Removed `homepage_url` (AMO disallows linking to `addons.mozilla.org`).
+
+### Build tooling
+
+* `scripts/package.sh` — build an unsigned `.xpi` for Developer Edition / ESR
+  test installs.
+* `scripts/sign.sh` — submit `App/` to the AMO unlisted channel for signing;
+  reads `AMO_JWT_ISSUER` / `AMO_JWT_SECRET` from the environment.
+
+> The next signed build must bump `version` in `App/manifest.json` — AMO rejects
+> a version string it has already signed for this add-on ID.
+
+---
+
 ## [0.4.5](https://github.com/RossWang/Aria2-Integration/compare/0.4.4...0.4.5) (2019-06-14)
 
 

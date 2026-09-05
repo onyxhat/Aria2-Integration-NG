@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>Options Page</title>
+</head>
+<body>
+	<style type="text/css">
+	       body {
+	         font-family: sans-serif;
+	         font-size: 16px;
+	         background: #f9f9fa;
+	       }
+	       p {
+	         margin: 3px;
+	       }
+	       .note {
+	         font-size: 80%;
+	         color: rgb(127, 127, 127);
+	       }
+	       h2 {
+	         font-size: 16px;
+	         margin: 20px 0 6px 0;
+	       }
+	       ul.paths {
+	         list-style: none;
+	         margin: 0;
+	         padding: 0;
+	         max-width: 560px;
+	       }
+	       ul.paths li {
+	         display: flex;
+	         align-items: center;
+	         padding: 4px 0;
+	         border-bottom: 1px solid #eeeeee;
+	       }
+	       ul.paths li span {
+	         flex: 1;
+	         overflow: hidden;
+	         text-overflow: ellipsis;
+	         white-space: nowrap;
+	       }
+	       ul.paths li.empty {
+	         color: rgb(127, 127, 127);
+	         font-size: 80%;
+	         border-bottom: none;
+	       }
+	       .addRow {
+	         display: flex;
+	         align-items: center;
+	         margin: 6px 0;
+	         max-width: 560px;
+	       }
+	       .addInput {
+	         flex: 1;
+	         height: 24px;
+	         padding: 2px 4px;
+	         font-size: 14px;
+	       }
+	       .addBtn {
+	         height: 28px;
+	         margin-left: 10px;
+	         padding: 0 12px;
+	         font-size: 14px;
+	       }
+	       button {
+	         border-style: none;
+	         border-radius: 2px;
+	         background-color: rgb(44, 173, 255);
+	         color: rgb(255, 255, 255);
+	         text-shadow: rgb(0, 64, 91) 0px 0px 0.5px;
+	         cursor: pointer;
+	       }
+	       .removeBtn {
+	         width: 26px;
+	         height: 24px;
+	         margin-left: 10px;
+	         font-size: 15px;
+	         line-height: 1;
+	       }
+	       .clearBtn {
+	         height: 28px;
+	         margin-top: 8px;
+	         padding: 0 12px;
+	         font-size: 14px;
+	       }
+	</style>
+
+	<p data-message="OPN_pathHistory" class="note">Paths you enter in the download pop-up are remembered here, separately for each RPC server.</p>
+
+	<h2 data-message="OP_rpcDefault">Default Server</h2>
+	<div class="addRow">
+		<input type="text" class="addInput" id="add1" data-server="1" placeholder="/path/to/download/folder">
+		<button class="addBtn" data-server="1" data-message="OP_add">Add</button>
+	</div>
+	<ul class="paths" id="list1"></ul>
+	<button class="clearBtn" data-server="1" data-message="OP_clear">Clear</button>
+
+	<h2 data-message="OP_rpc2">RPC Server 2</h2>
+	<div class="addRow">
+		<input type="text" class="addInput" id="add2" data-server="2" placeholder="/path/to/download/folder">
+		<button class="addBtn" data-server="2" data-message="OP_add">Add</button>
+	</div>
+	<ul class="paths" id="list2"></ul>
+	<button class="clearBtn" data-server="2" data-message="OP_clear">Clear</button>
+
+	<h2 data-message="OP_rpc3">RPC Server 3</h2>
+	<div class="addRow">
+		<input type="text" class="addInput" id="add3" data-server="3" placeholder="/path/to/download/folder">
+		<button class="addBtn" data-server="3" data-message="OP_add">Add</button>
+	</div>
+	<ul class="paths" id="list3"></ul>
+	<button class="clearBtn" data-server="3" data-message="OP_clear">Clear</button>
+
+	<div align="right">
+		<span id="status"></span>
+	</div>
+
+	<script src="/config.js"></script>
+	<script src="/lib/tools.js"></script>
+	<script src="pathHistory.js"></script>
+</body>
+</html>

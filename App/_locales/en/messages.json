@@ -1,6 +1,6 @@
 {
 	"extensionName": {
-		"message": "Aria2 Download Manager Integration",
+		"message": "Aria2 Integration NG",
 		"description": "Name of the extension."
 	},
 
@@ -502,6 +502,36 @@
 	
 	"about_L5": {
 		"message": "Help Translate",
+		"description": ""
+	},
+
+	"OP_pathHistory": {
+		"message": "Path History",
+		"description": ""
+	},
+
+	"OPN_pathHistory": {
+		"message": "Paths you enter in the download pop-up are remembered here, separately for each RPC server.",
+		"description": ""
+	},
+
+	"OPN_pathHistoryEmpty": {
+		"message": "No saved paths",
+		"description": ""
+	},
+
+	"OP_add": {
+		"message": "Add",
+		"description": ""
+	},
+
+	"OP_clear": {
+		"message": "Clear",
+		"description": ""
+	},
+
+	"OP_remove": {
+		"message": "Remove",
 		"description": ""
 	}
 }

@@ -180,3 +180,53 @@ function downloadPanel(d) {
 		});
 	}, () => {});
 }
+
+///////////////////////////////////////
+// File Path history (per RPC server) //
+///////////////////////////////////////
+const MAX_RECENT_PATHS = 10;
+
+function readRecentPaths() {
+	return new Promise((resolve) => {
+		browser.storage.local.get(config.command.guess, (item) => {
+			var rp = item.recentPaths;
+			if (!rp || typeof rp != "object")
+				rp = { "1": [], "2": [], "3": [] };
+			["1", "2", "3"].forEach((s) => {
+				if (!Array.isArray(rp[s]))
+					rp[s] = [];
+			});
+			resolve(rp);
+		});
+	});
+}
+
+function getRecentPaths(server) {
+	return readRecentPaths().then((rp) => rp[server] || []);
+}
+
+function addRecentPath(server, p) {
+	p = (p || "").trim();
+	if (p == "")
+		return Promise.resolve();
+	return readRecentPaths().then((rp) => {
+		var list = rp[server].filter((x) => x !== p);
+		list.unshift(p);
+		rp[server] = list.slice(0, MAX_RECENT_PATHS);
+		return browser.storage.local.set({ recentPaths: rp });
+	});
+}
+
+function removeRecentPath(server, p) {
+	return readRecentPaths().then((rp) => {
+		rp[server] = rp[server].filter((x) => x !== p);
+		return browser.storage.local.set({ recentPaths: rp });
+	});
+}
+
+function clearRecentPaths(server) {
+	return readRecentPaths().then((rp) => {
+		rp[server] = [];
+		return browser.storage.local.set({ recentPaths: rp });
+	});
+}

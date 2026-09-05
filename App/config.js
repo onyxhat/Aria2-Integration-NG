@@ -4,6 +4,7 @@ config.command = {
 	get guess() {
 		return {
 			path: "",
+			recentPaths: { "1": [], "2": [], "3": [] },
 			protocol: "ws",
 			host: "127.0.0.1",
 			port: "6800",

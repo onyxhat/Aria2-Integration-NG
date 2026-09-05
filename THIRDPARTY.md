@@ -1,6 +1,6 @@
 # Third Party Legal Notices
 
-Aria2 Download Manager Integration use Third Party code for certain functions. The Licenses for such code are listed below.
+Aria2 Integration NG uses Third Party code for certain functions. The Licenses for such code are listed below.
 
 ## AriaNg
 

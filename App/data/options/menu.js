@@ -6,6 +6,7 @@ function hashHandler(ev) {
 		document.querySelector('#general').className = "";
 		document.querySelector('#rpc').className = "";
 		document.querySelector('#exception').className = "";
+		document.querySelector('#pathHistory').className = "";
 		document.querySelector('#about').className = "";
 		if (location.hash == "#rpc" || location.hash == "#rpc2" || location.hash == "#rpc3")
 			document.querySelector("#rpc").className = "active";

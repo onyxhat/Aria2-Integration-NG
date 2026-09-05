@@ -1,0 +1,9 @@
+# graft's local graph cache — regenerable, not committed (run `graft build`).
+/graft/
+/.zvec-grep/
+/.claude/
+
+# packaged extension builds (scripts/package.sh)
+/dist/
+.DS_Store
+App/.amo-upload-uuid
