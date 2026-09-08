@@ -15,6 +15,11 @@ function save() {
 	const cmDownPanel = document.getElementById('cmDownPanel').checked;
 	const dpHeight = document.getElementById('dpHeight').value;
 	const dpWidth = document.getElementById('dpWidth').value;
+	var sound = "3";
+	if (document.getElementById('sound0').checked) sound = "0";
+	else if (document.getElementById('sound1').checked) sound = "1";
+	else if (document.getElementById('sound2').checked) sound = "2";
+	else if (document.getElementById('sound3').checked) sound = "3";
 	if (!windowLoc){
 		browser.storage.local.remove(['dpLeft','dpTop']);
 	}
@@ -32,7 +37,8 @@ function save() {
 		downPanel,
 		cmDownPanel,
 		dpHeight,
-		dpWidth
+		dpWidth,
+		sound
 	}, () => {
 		const status = document.getElementById('status');
 		status.textContent = browser.i18n.getMessage("OP_saveComplete");
@@ -59,6 +65,7 @@ function restore() {
 		document.getElementById('badge').checked = prefs.badge;
 		document.getElementById('cmDownPanel').checked = prefs.cmDownPanel;
 		document.getElementById('downPanel').checked = prefs.downPanel;
+		document.getElementById('sound' + (prefs.sound || "3")).checked = true;
 	});
 	browser.storage.local.get(['dpWidth', 'dpHeight'], prefs => {
 		document.getElementById('dpWidth').value = prefs.dpWidth;
