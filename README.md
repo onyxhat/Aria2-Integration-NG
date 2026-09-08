@@ -13,16 +13,26 @@ it is signed through Mozilla's unlisted channel and installed manually (see
 
 ## What NG changes
 
-- **File Path history in the download pop-up.** The *File Path* field is now a
+- **Dynamic RPC servers.** The three fixed server slots — each on its own
+  options page, reached through a pop-out submenu — are replaced by one
+  **RPC Servers** page that manages any number of servers as an expandable
+  list: add, rename, reorder, remove, mark one as default, and test a
+  connection inline. The download pop-up and the *Download with Aria2* context
+  menu still let you choose the target server per download; the default server
+  is used for auto-captured downloads and *Open AriaNg*. Existing 0.4.5
+  settings migrate automatically on first run.
+- **File Path history in the download pop-up.** The *File Path* field is a
   combobox: it pre-fills with the most recently used directory, offers a
   drop-down of previous paths, and still accepts a freshly typed path. History
-  is kept per RPC server (Default / Server 2 / Server 3), capped at 10 entries,
-  newest first. Only the aria2 *Download* action records a path. The drop-down
-  is a custom control styled to match the pop-up (not the native `<datalist>`).
+  is kept per RPC server, capped at 10 entries, newest first. Only the aria2
+  *Download* action records a path. The drop-down is a custom control styled to
+  match the pop-up (not the native `<datalist>`).
 - **Options → Path History.** A page to manage that history: add a path
   manually, remove an individual entry, or clear a server's list.
+- **"Download Completed Sound"** moved from the RPC settings page to
+  **Options → General**.
 
-Upstream behaviour is otherwise unchanged. See [CHANGELOG.md](CHANGELOG.md).
+Otherwise it tracks upstream. See [CHANGELOG.md](CHANGELOG.md).
 
 ## Build & install
 
