@@ -1,6 +1,8 @@
 {
   "name": "__MSG_extensionName__",
   "description": "__MSG_extensionDescription__",
+  "author": "Isaac Springer",
+  "homepage_url": "https://github.com/onyxhat/Aria2-Integration-NG",
   "version": "0.4.5",
   "default_locale": "en",
   "manifest_version": 2,
@@ -19,9 +21,9 @@
   "background": {
     "scripts": [
       "config.js",
-      "common.js",
+      "/lib/tools.js",
+	  "common.js",
 	  "/lib/aria.js",
-	  "/lib/tools.js",
 	  "/lib/polygoat.js"
     ]
   },

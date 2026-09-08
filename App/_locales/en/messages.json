@@ -10,12 +10,12 @@
 	},
 	
 	"translator": {
-		"message": "Translator: Ross Wang",
+		"message": "Translator: Isaac Springer",
 		"description": ""
 	},
-	
+
 	"translatorMessage": {
-		"message": "English is not my native language, so there may have something wrong in the translation. Please help me correct the mistakes.",
+		"message": "",
 		"description": "you can leave it blank if you have nothing to say"
 	},
 	
@@ -416,7 +416,7 @@
 	},
 	
 	"OP_title": {
-		"message": "Aria2 Download Manager Integration Options",
+		"message": "Aria2 Integration NG Options",
 		"description": ""
 	},
 	
@@ -444,7 +444,67 @@
 		"message": "RPC Server 3",
 		"description": ""
 	},
-	
+
+	"OP_rpcAddServer": {
+		"message": "Add server",
+		"description": "Button on the RPC Servers options page"
+	},
+
+	"OP_rpcServerName": {
+		"message": "Name",
+		"description": "Optional per-server label field"
+	},
+
+	"OP_rpcServerNamePlaceholder": {
+		"message": "optional — defaults to host:port",
+		"description": "Placeholder for the server name field"
+	},
+
+	"OP_rpcSetDefault": {
+		"message": "Default",
+		"description": "Radio label marking the default RPC server"
+	},
+
+	"OP_rpcRemove": {
+		"message": "Remove",
+		"description": "Remove-server button on the RPC Servers page"
+	},
+
+	"OP_rpcRemoveConfirm": {
+		"message": "Remove this server? Its path history will be discarded.",
+		"description": "Confirm prompt before removing a server"
+	},
+
+	"OP_rpcTest": {
+		"message": "Test connection",
+		"description": "Button that probes the aria2 RPC endpoint"
+	},
+
+	"OP_rpcTestOk": {
+		"message": "Reachable",
+		"description": "Test connection succeeded"
+	},
+
+	"OP_rpcTestFail": {
+		"message": "Unreachable",
+		"description": "Test connection failed"
+	},
+
+	"OP_rpcMoveUp": {
+		"message": "Move up",
+		"description": "Reorder control on the RPC Servers page"
+	},
+
+	"OP_rpcMoveDown": {
+		"message": "Move down",
+		"description": "Reorder control on the RPC Servers page"
+	},
+
+	"OP_rpcLastServer": {
+		"message": "At least one server is required.",
+		"description": "Shown when the user tries to remove the only server"
+	},
+
 	"OP_exception": {
 		"message": "Exceptions",
 		"description": ""

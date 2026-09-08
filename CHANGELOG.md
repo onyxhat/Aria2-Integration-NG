@@ -1,8 +1,10 @@
 # Aria2 Integration NG
 
-A personal fork of [Aria2 Download Manager Integration](https://addons.mozilla.org/firefox/addon/aria2-integration/),
-self-signed and distributed as an unlisted add-on (not on AMO). Extension ID
-`aria2-integration-ng@springer`. Upstream release history is preserved below.
+A personal fork of [Aria2 Download Manager Integration](https://github.com/RossWang/Aria2-Integration)
+(by Ross Wang), maintained by Isaac Springer at
+<https://github.com/onyxhat/Aria2-Integration-NG>. Self-signed and distributed
+as an unlisted add-on (not on AMO). Extension ID `aria2-integration-ng@springer`.
+Upstream release history is preserved below.
 
 ## 0.4.5 (NG) — 2026-09-05
 

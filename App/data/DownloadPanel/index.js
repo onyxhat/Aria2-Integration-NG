@@ -43,7 +43,7 @@ function init() {
 	browser.storage.local.get(config.command.guess, (item) => {
 		document.documentElement.style.transform = "scale(" + item.zoom + ")";
 	});
-	loadPathHistory();
+	populateServers().then(loadPathHistory);
 	document.querySelector('.s1').addEventListener('change', loadPathHistory);
 	var fp = document.getElementById('fp');
 	var fpToggle = document.getElementById('fpToggle');
@@ -158,6 +158,22 @@ function moveFpActive(delta) {
 	fpActive = (fpActive + delta + items.length) % items.length;
 	items[fpActive].classList.add('active');
 	items[fpActive].scrollIntoView({ block: 'nearest' });
+}
+
+function populateServers() {
+	return Promise.all([getServers(), getDefaultServer()]).then(function (r) {
+		var servers = r[0], def = r[1];
+		var sel = document.querySelector('.s1');
+		sel.textContent = '';
+		servers.forEach(function (s) {
+			var opt = document.createElement('option');
+			opt.value = s.id;
+			opt.textContent = (s.name && s.name.trim()) || (s.host + ':' + s.port);
+			sel.appendChild(opt);
+		});
+		if (def) sel.value = def.id;
+		else if (servers.length) sel.value = servers[0].id;
+	});
 }
 
 function loadPathHistory() {

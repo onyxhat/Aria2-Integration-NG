@@ -35,16 +35,17 @@ function detail() {
 			});
 		} 
 		else {
-			browser.storage.local.get(config.command.guess, function(item) {
-				var ariangUrl = "../../data/ariang/index.html"
-				if (item.autoSet) {
+			Promise.all([
+				browser.storage.local.get("autoSet"),
+				getDefaultServer(),
+			]).then(function (r) {
+				var autoSet = r[0].autoSet, s = r[1];
+				var ariangUrl = "../../data/ariang/index.html";
+				if (autoSet && s) {
 					ariangUrl += "#!/settings/rpc/set/";
-					ariangUrl += (item.protocol + "/" + item.host + "/" + item.port + "/" + 
-					item.interf + "/" + btoa(item.token));
+					ariangUrl += (s.protocol + "/" + s.host + "/" + s.port + "/" + s.interf + "/" + btoa(s.token));
 				}
-				browser.tabs.create({
-					url: ariangUrl
-				});
+				browser.tabs.create({ url: ariangUrl });
 				window.close();
 			});
 		}

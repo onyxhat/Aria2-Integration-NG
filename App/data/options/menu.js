@@ -8,10 +8,8 @@ function hashHandler(ev) {
 		document.querySelector('#exception').className = "";
 		document.querySelector('#pathHistory').className = "";
 		document.querySelector('#about').className = "";
-		if (location.hash == "#rpc" || location.hash == "#rpc2" || location.hash == "#rpc3")
-			document.querySelector("#rpc").className = "active";
-		else
-			document.querySelector(location.hash).className = "active";
+		var active = document.querySelector(location.hash);
+		if (active) active.className = "active";
 	}
 	document.querySelectorAll('[data-message]').forEach(n => {
 		n.textContent = browser.i18n.getMessage(n.dataset.message);

@@ -10,332 +10,96 @@ var fileTypeFilterB = "";
 var urlFilterB = "";
 var mon;
 
-function sendTo(url, fileName, filePath, header, server) {
-	// check whether config is set
-	browser.storage.local.get("initialize", item => {
-		if (!item.initialize || (item.initialize == undefined)) {
+function sendTo(url, fileName, filePath, header, serverId) {
+	browser.storage.local.get("initialize", function (init) {
+		if (!init.initialize || (init.initialize == undefined)) {
 			browser.runtime.openOptionsPage();
 			notify(browser.i18n.getMessage("error_setConfig"));
+			return;
 		}
-		else {
-			if (server == "1") {
-				browser.storage.local.get(config.command.guess, function(item) {
-					var sec = false;
-					if (item.protocol.toLowerCase() == "https" || item.protocol.toLowerCase() == "wss") {
-						sec = true;
-					}	
-					var options = {
-						host: item.host,
-						port: item.port,
-						secure: sec,
-						secret: item.token,
-						path: "/" + item.interf
-					};
-					
-					var aria2 = new Aria2(options);
-					// check whether aria2 is runnning
-					isRunning(item, aria2);
-					
-					// Send TO Aria2
-					filePath = filePath.replace(/\\/g, '\\\\');
-					item.path = item.path.replace(/\\/g, '\\\\');
-					var params = {};
-					if (header != "[]")
-						params.header = header;
-					params.out = fileName;
-					params["parameterized-uri"]  = "false";
-					if (filePath != "") {
-						// file path from download panel
-						params.dir = filePath;
+		getServer(serverId).then(function (s) { return s ? s : getDefaultServer(); }).then(function (item) {
+			if (!item) {
+				browser.runtime.openOptionsPage();
+				notify(browser.i18n.getMessage("error_setConfig"));
+				return;
+			}
+
+			var proto = (item.protocol || "").toLowerCase();
+			var sec = proto == "https" || proto == "wss";
+			var options = {
+				host: item.host,
+				port: item.port,
+				secure: sec,
+				secret: item.token,
+				path: "/" + item.interf,
+			};
+			var aria2 = new Aria2(options);
+			browser.storage.local.get(["auto", "shutdown"], function (flags) {
+				isRunning({ protocol: item.protocol, auto: flags.auto, shutdown: flags.shutdown }, aria2);
+			});
+
+			filePath = filePath.replace(/\\/g, '\\\\');
+			var settingPath = (item.path || "").replace(/\\/g, '\\\\');
+			var params = {};
+			if (header != "[]") params.header = header;
+			params.out = fileName;
+			params["parameterized-uri"] = "false";
+			if (filePath != "") params.dir = filePath;
+			else if (settingPath != "") params.dir = settingPath;
+
+			function ok(res) {
+				monitor(options, res);
+				notify(browser.i18n.getMessage("success_connect", fileName) + "\n\n" + url);
+				aria2.close();
+			}
+			function okHttp() {
+				notify(browser.i18n.getMessage("success_connect", fileName) + "\n\n" + url);
+			}
+			function fail(err) {
+				console.log('Error', err);
+				notify(browser.i18n.getMessage("error_connect"));
+			}
+
+			if (proto == "ws" || proto == "wss") {
+				aria2.open().then(
+					function () {
+						aria2.addUri([url], params).then(ok, function () {
+							setTimeout(function () {
+								aria2.addUri([url], params).then(ok, function (err) { fail(err); aria2.close(); });
+							}, 3000);
+						});
+					},
+					function () {
+						setTimeout(function () {
+							aria2.open().then(function () {
+								aria2.addUri([url], params).then(ok, function (err) { fail(err); aria2.close(); });
+							}, function (err) { fail(err); });
+						}, 3000);
 					}
-					else if (item.path != "") {
-						// file path from setting
-						params.dir = item.path;
-					}
-					if (item.protocol.toLowerCase() == "ws" || item.protocol.toLowerCase() == "wss") {
-						aria2.open().then(
-							function (res) {
-								aria2.addUri([url], params).then(
-									function (res) {
-										monitor(options, res);
-										notify(browser.i18n.getMessage("success_connect", fileName) + "\n\n" + url);
-										aria2.close();
-									},
-									function (err) {
-										// retry again after 3 seconds
-										setTimeout( () => {
-											aria2.addUri([url], params).then(
-												function (res) {
-													monitor(options, res);
-													notify(browser.i18n.getMessage("success_connect", fileName) + "\n\n" + url);
-													aria2.close();
-												},
-												function (err) {
-													console.log('Error', err);
-													notify(browser.i18n.getMessage("error_connect"));
-													aria2.close();
-												}
-											);
-										}, 3000);
-									}
-								);
-							},
-							function (err) {
-								// retry again after 3 seconds
-								setTimeout( () => {
-									aria2.open().then( () => {
-										aria2.addUri([url], params).then(
-											function (res) {
-												monitor(options, res);
-												notify(browser.i18n.getMessage("success_connect", fileName) + "\n\n" + url);
-												aria2.close();
-											},
-											function (err) {
-												console.log('Error', err);
-												notify(browser.i18n.getMessage("error_connect"));
-												aria2.close();
-											}
-										);
-									}, (err) => {
-										console.log('Error', err);
-										notify(browser.i18n.getMessage("error_connect"));
-									});
-								}, 3000);
-							}
-						);
-					}
-					else {
-						aria2.addUri([url], params).then(
-							function (res) {
-								notify(browser.i18n.getMessage("success_connect", fileName) + "\n\n" + url);
-							},
-							function (err) {
-								// retry again after 3 seconds
-								setTimeout( () => {
-									aria2.addUri([url], params).then(
-										function (res) {
-											notify(browser.i18n.getMessage("success_connect", fileName) + "\n\n" + url);
-										},
-										function (err) {
-											console.log('Error', err);
-											notify(browser.i18n.getMessage("error_connect"));
-										}
-									);
-								}, 3000);
-							}
-						);
-					}
-					console.log("default", url, params);
+				);
+			} else {
+				aria2.addUri([url], params).then(okHttp, function () {
+					setTimeout(function () {
+						aria2.addUri([url], params).then(okHttp, fail);
+					}, 3000);
 				});
 			}
-			else if(server == "2") {
-				browser.storage.local.get(config.command.s2, function(item) {
-					var secure = false;
-					if (item.protocol2.toLowerCase() == "https" || item.protocol2.toLowerCase() == "wss")
-						secure = true;
-					var options = {
-						host: item.host2,
-						port: item.port2,
-						secure: secure,
-						secret: item.token2,
-						path: "/" + item.interf2
-					};
-					
-					var aria2 = new Aria2(options);
-					
-					// Send TO Aria2
-					filePath = filePath.replace(/\\/g, '\\\\');
-					item.path2 = item.path2.replace(/\\/g, '\\\\');
-					var params = {};
-					if (header != "[]")
-						params.header = header;
-					params.out = fileName;
-					if (filePath != "") {
-						// file path from download panel
-						params.dir = filePath;
-					}
-					else if (item.path2 != "") {
-						// file path from setting
-						params.dir = item.path2;
-					}
-					if (item.protocol2.toLowerCase() == "ws" || item.protocol2.toLowerCase() == "wss") {
-						aria2.open().then(
-							function (res) {
-								aria2.addUri([url], params).then(
-									function (res) {
-										notify(browser.i18n.getMessage("success_connect", fileName) + "\n\n" + url);
-										aria2.close();
-									},
-									function (err) {
-										// retry again after 3 seconds
-										setTimeout( () => {
-											aria2.addUri([url], params).then(
-												function (res) {
-													notify(browser.i18n.getMessage("success_connect", fileName) + "\n\n" + url);
-													aria2.close();
-												},
-												function (err) {
-													console.log('Error', err);
-													notify(browser.i18n.getMessage("error_connect"));
-													aria2.close();
-												}
-											);
-										}, 3000);
-									}
-								);
-							},
-							function (err) {
-								// retry again after 3 seconds
-								setTimeout( () => {
-									aria2.open().then( () => {
-										aria2.addUri([url], params).then(
-											function (res) {
-												notify(browser.i18n.getMessage("success_connect", fileName) + "\n\n" + url);
-												aria2.close();
-											},
-											function (err) {
-												console.log('Error', err);
-												notify(browser.i18n.getMessage("error_connect"));
-												aria2.close();
-											}
-										);
-									}, (err) => {
-										console.log('Error', err);
-										notify(browser.i18n.getMessage("error_connect"));
-									});
-								}, 3000);
-							}
-						);
-					}
-					else {
-						aria2.addUri([url], params).then(
-							function (res) {
-								notify(browser.i18n.getMessage("success_connect", fileName) + "\n\n" + url);
-							},
-							function (err) {
-								// retry again after 3 seconds
-								setTimeout( () => {
-									aria2.addUri([url], params).then(
-										function (res) {
-											notify(browser.i18n.getMessage("success_connect", fileName) + "\n\n" + url);
-										},
-										function (err) {
-											console.log('Error', err);
-											notify(browser.i18n.getMessage("error_connect"));
-										}
-									);
-								}, 3000);
-							}
-						);
-					}
-					console.log("rpc2", url, params);
-				});
-			}
-			else if(server == "3") {
-				browser.storage.local.get(config.command.s3, function(item) {
-					var secure = false;
-					if (item.protocol3.toLowerCase() == "https" || item.protocol3.toLowerCase() == "wss")
-						secure = true;
-					var options = {
-						host: item.host3,
-						port: item.port3,
-						secure: secure,
-						secret: item.token3,
-						path: "/" + item.interf3
-					};
-					
-					var aria2 = new Aria2(options);
-					
-					// Send TO Aria2
-					filePath = filePath.replace(/\\/g, '\\\\');
-					item.path3 = item.path3.replace(/\\/g, '\\\\');
-					var params = {};
-					if (header != "[]")
-						params.header = header;
-					params.out = fileName;
-					if (filePath != "") {
-						// file path from download panel
-						params.dir = filePath;
-					}
-					else if (item.path3 != "") {
-						// file path from setting
-						params.dir = item.path3;
-					}
-					if (item.protocol3.toLowerCase() == "ws" || item.protocol3.toLowerCase() == "wss") {
-						aria2.open().then(
-							function (res) {
-								aria2.addUri([url], params).then(
-									function (res) {
-										notify(browser.i18n.getMessage("success_connect", fileName) + "\n\n" + url);
-										aria2.close();
-									},
-									function (err) {
-										// retry again after 3 seconds
-										setTimeout( () => {
-											aria2.addUri([url], params).then(
-												function (res) {
-													notify(browser.i18n.getMessage("success_connect", fileName) + "\n\n" + url);
-													aria2.close();
-												},
-												function (err) {
-													console.log('Error', err);
-													notify(browser.i18n.getMessage("error_connect"));
-													aria2.close();
-												}
-											);
-										}, 3000);
-									}
-								);
-							},
-							function (err) {
-								// retry again after 3 seconds
-								setTimeout( () => {
-									aria2.open().then( () => {
-										aria2.addUri([url], params).then(
-											function (res) {
-												notify(browser.i18n.getMessage("success_connect", fileName) + "\n\n" + url);
-												aria2.close();
-											},
-											function (err) {
-												console.log('Error', err);
-												notify(browser.i18n.getMessage("error_connect"));
-												aria2.close();
-											}
-										);
-									}, (err) => {
-										console.log('Error', err);
-										notify(browser.i18n.getMessage("error_connect"));
-									});
-								}, 3000);
-							}
-						);
-					}
-					else {
-						aria2.addUri([url], params).then(
-							function (res) {
-								notify(browser.i18n.getMessage("success_connect", fileName) + "\n\n" + url);
-							},
-							function (err) {
-								// retry again after 3 seconds
-								setTimeout( () => {
-									aria2.addUri([url], params).then(
-										function (res) {
-											notify(browser.i18n.getMessage("success_connect", fileName) + "\n\n" + url);
-										},
-										function (err) {
-											console.log('Error', err);
-											notify(browser.i18n.getMessage("error_connect"));
-										}
-									);
-								}, 3000);
-							}
-						);
-					}
-					console.log("rpc3", url, params);
-				});
-			}
-		}
+		});
 	});
+}
+
+function testServer(s) {
+	var proto = (s.protocol || "").toLowerCase();
+	var sec = proto == "https" || proto == "wss";
+	var aria2 = new Aria2({ host: s.host, port: s.port, secure: sec, secret: s.token, path: "/" + s.interf });
+	var isWs = proto == "ws" || proto == "wss";
+	var probe = isWs
+		? aria2.open().then(function () { aria2.close(); })
+		: aria2.getVersion();
+	return probe.then(
+		function () { return { ok: true }; },
+		function (e) { return { ok: false, error: String((e && e.message) || e || "unreachable") }; }
+	);
 }
 
 function save(url, fileName, filePath, header, as, wid, incog) {
@@ -437,6 +201,8 @@ function handleMessage(request, sender, sendResponse) {
 				response: "send success"
 			});
 			break;
+		case "testServer":
+			return testServer(request.server);
 		default:
 			console.log("Message from the content script: " + request.get);
 			sendResponse({
@@ -616,7 +382,9 @@ async function prepareDownload(d) {
 			downloadPanel(details);
 		}
 		else {
-			sendTo(details.url,details.fileName,"",details.requestHeaders,"1");
+			getDefaultServer().then(function (s) {
+				sendTo(details.url, details.fileName, "", details.requestHeaders, s && s.id);
+			});
 		}
 	});
 	
@@ -774,129 +542,79 @@ function changeState(enabled) {
 	});
 }
 function cmCallback (info, tab) {
-	var server = info.menuItemId.slice(1);
-	var url = (info.parentMenuItemId === 'open-video' ? info.srcUrl : info.linkUrl);
-	if (url == ""){
-		notify(browser.i18n.getMessage("error_notSupported"))
+	var id = info.menuItemId;
+	var serverId = null;
+	if (id.indexOf('dl:') === 0 || id.indexOf('dv:') === 0) serverId = id.slice(3);
+
+	var isVideo = (info.parentMenuItemId === 'open-video' || id === 'open-video' || id.indexOf('dv:') === 0);
+	var url = isVideo ? info.srcUrl : info.linkUrl;
+	if (!url) {
+		notify(browser.i18n.getMessage("error_notSupported"));
+		return;
 	}
-	else {
-		browser.cookies.getAll({url:url}).then((cookies) => {
-			var requestHeaders = [];
-			requestHeaders[0] = ("Referer: " + info.pageUrl + "\"");
-			requestHeaders[1] = ("Cookie: ");
-			var cookie = {};
-			for (cookie of cookies) {
-				requestHeaders[1] += cookie.name;
-				requestHeaders[1] += "="
-				requestHeaders[1] += cookie.value;
-				requestHeaders[1] += "; "
+
+	function dispatch(requestHeaders) {
+		var d = {
+			url: url,
+			fileName: getFileNameURL(url),
+			fileSize: "",
+			requestHeaders: requestHeaders
+		};
+		browser.storage.local.get(config.command.guess, function (item) {
+			if (item.cmDownPanel) {
+				downloadPanel(d);
+			} else {
+				(serverId ? Promise.resolve(serverId) : getDefaultServer().then(function (s) { return s && s.id; }))
+					.then(function (sid) { sendTo(url, "", "", requestHeaders, sid); });
 			}
-			var d = {
-				url: url,
-				fileName: getFileNameURL(url),
-				fileSize: "",
-				requestHeaders: requestHeaders
-			}
-			browser.storage.local.get(config.command.guess, item => {
-				if (item.cmDownPanel) {
-					downloadPanel(d);
-				}
-				else {
-					sendTo(url,"","",requestHeaders,server);
-				}
-			});
-			console.log(info);
-		}, (e) => {
-			console.log("Error", e);
-			var requestHeaders = "[";
-			requestHeaders += ("\"Referer: " + info.pageUrl + "\"");
-			requestHeaders += "]";
-			var d = {
-				url: url,
-				fileName: getFileNameURL(url),
-				fileSize: "",
-				requestHeaders: requestHeaders
-			}
-			browser.storage.local.get(config.command.guess, item => {
-				if (item.cmDownPanel) {
-					downloadPanel(d);
-				}
-				else {
-					sendTo(url,"","",requestHeaders,server);
-				}
-			});
-			console.log(info);
-		} );;
+		});
 	}
+
+	browser.cookies.getAll({ url: url }).then(function (cookies) {
+		var requestHeaders = [];
+		requestHeaders[0] = ("Referer: " + info.pageUrl + "\"");
+		requestHeaders[1] = ("Cookie: ");
+		for (var i = 0; i < cookies.length; i++) {
+			requestHeaders[1] += cookies[i].name + "=" + cookies[i].value + "; ";
+		}
+		dispatch(requestHeaders);
+	}, function () {
+		var requestHeaders = "[\"Referer: " + info.pageUrl + "\"]";
+		dispatch(requestHeaders);
+	});
 }
 function contextMenus (enabled, cmDownPanel){
-	browser.contextMenus.removeAll();
-	browser.contextMenus.onClicked.removeListener(cmCallback);
-	var cmTitle = browser.i18n.getMessage("CM_title");
-	var seD = browser.i18n.getMessage("OP_rpcDefault");
-	var se2 = browser.i18n.getMessage("OP_rpc2");
-	var se3 = browser.i18n.getMessage("OP_rpc3");
-	if (enabled){
+	function build(servers) {
+		browser.contextMenus.removeAll();
+		browser.contextMenus.onClicked.removeListener(cmCallback);
+		if (!enabled) return;
+
+		var cmTitle = browser.i18n.getMessage("CM_title");
 		browser.contextMenus.create({
-			id: 'open-link',
-			title: cmTitle,
-			contexts: ['link'],
-			documentUrlPatterns: ['*://*/*']
+			id: 'open-link', title: cmTitle, contexts: ['link'], documentUrlPatterns: ['*://*/*']
 		});
-		
 		browser.contextMenus.create({
-			id: 'open-video',
-			title: cmTitle,
-			contexts: ['video', 'audio'],
-			documentUrlPatterns: ['*://*/*']
+			id: 'open-video', title: cmTitle, contexts: ['video', 'audio'], documentUrlPatterns: ['*://*/*']
 		});
-		
-		if (!cmDownPanel){
-			browser.contextMenus.create({
-				id: 'A1',
-				title: seD,
-				contexts: ['link'],
-				parentId: 'open-link',
-				documentUrlPatterns: ['*://*/*']
-			});
-			browser.contextMenus.create({
-				id: 'A2',
-				title: se2,
-				contexts: ['link'],
-				parentId: 'open-link',
-				documentUrlPatterns: ['*://*/*']
-			});
-			browser.contextMenus.create({
-				id: 'A3',
-				title: se3,
-				contexts: ['link'],
-				parentId: 'open-link',
-				documentUrlPatterns: ['*://*/*']
-			});
-			browser.contextMenus.create({
-				id: 'B1',
-				title: seD,
-				contexts: ['video', 'audio'],
-				parentId: 'open-video',
-				documentUrlPatterns: ['*://*/*']
-			});
-			browser.contextMenus.create({
-				id: 'B2',
-				title: se2,
-				contexts: ['video', 'audio'],
-				parentId: 'open-video',
-				documentUrlPatterns: ['*://*/*']
-			});
-			browser.contextMenus.create({
-				id: 'B3',
-				title: se3,
-				contexts: ['video', 'audio'],
-				parentId: 'open-video',
-				documentUrlPatterns: ['*://*/*']
+
+		if (!cmDownPanel && servers.length > 1) {
+			servers.forEach(function (s) {
+				var title = (s.name && s.name.trim()) || (s.host + ":" + s.port);
+				browser.contextMenus.create({
+					id: 'dl:' + s.id, title: title, contexts: ['link'],
+					parentId: 'open-link', documentUrlPatterns: ['*://*/*']
+				});
+				browser.contextMenus.create({
+					id: 'dv:' + s.id, title: title, contexts: ['video', 'audio'],
+					parentId: 'open-video', documentUrlPatterns: ['*://*/*']
+				});
 			});
 		}
+
 		browser.contextMenus.onClicked.addListener(cmCallback);
 	}
+
+	getServers().then(build, function (e) { console.log("contextMenus", e); build([]); });
 }
 
 (function(callback) {
@@ -915,7 +633,7 @@ function contextMenus (enabled, cmDownPanel){
 			browser.storage.local.get(config.command.guess, item => {
 				if (d.reason == "update" && item.chgLog == true){
 					browser.tabs.create({
-						url: "https://github.com/RossWang/Aria2-Integration/blob/master/CHANGELOG.md"
+						url: "https://github.com/onyxhat/Aria2-Integration-NG/blob/master/CHANGELOG.md"
 					});
 				}
 			});
@@ -937,12 +655,14 @@ function loadSettings() {
 }
 
 (function() {
-	browser.storage.local.get("enabled", function(item) {
-		changeState(item.enabled);
+	runMigration().catch(function (e) { console.log("migration error", e); }).then(function () {
+		browser.storage.local.get("enabled", function(item) {
+			changeState(item.enabled);
+		});
+		browser.browserAction.setBadgeBackgroundColor({color: [0,0,0,100]});
+		loadSettings();
+		browser.runtime.onMessage.addListener(handleMessage);
 	});
-	browser.browserAction.setBadgeBackgroundColor({color: [0,0,0,100]});
-	loadSettings();
-	browser.runtime.onMessage.addListener(handleMessage);
 })();
 
 
