@@ -186,6 +186,59 @@ function downloadPanel(d) {
 ///////////////////////////////////////
 const MAX_RECENT_PATHS = 10;
 
+///////////////////////////////////////
+// RPC servers (dynamic list)         //
+///////////////////////////////////////
+const SERVER_DEFAULTS = {
+	name: "", protocol: "ws", host: "127.0.0.1", port: "6800", interf: "jsonrpc", token: "", path: "",
+};
+
+function newServerId() {
+	if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+		return crypto.randomUUID();
+	}
+	return "s-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 10);
+}
+
+// Pure: old storage blob -> { servers, defaultServerId, recentPaths }. No `browser` use.
+function migrateSchema(raw, opts) {
+	raw = raw || {};
+	opts = opts || {};
+	var makeId = opts.makeId || newServerId;
+	var names = opts.names || { s1: "Default Server", s2: "RPC Server 2", s3: "RPC Server 3" };
+	var rp = (raw.recentPaths && typeof raw.recentPaths === "object") ? raw.recentPaths : {};
+
+	function build(name, suffix) {
+		return {
+			id: makeId(),
+			name: name,
+			protocol: raw["protocol" + suffix] || SERVER_DEFAULTS.protocol,
+			host: raw["host" + suffix] || SERVER_DEFAULTS.host,
+			port: raw["port" + suffix] || SERVER_DEFAULTS.port,
+			interf: raw["interf" + suffix] || SERVER_DEFAULTS.interf,
+			token: raw["token" + suffix] || SERVER_DEFAULTS.token,
+			path: raw["path" + suffix] || SERVER_DEFAULTS.path,
+		};
+	}
+
+	var servers = [];
+	var recentPaths = {};
+
+	var s1 = build(names.s1, "");
+	servers.push(s1);
+	recentPaths[s1.id] = Array.isArray(rp["1"]) ? rp["1"].slice(0, MAX_RECENT_PATHS) : [];
+
+	[["2", names.s2], ["3", names.s3]].forEach(function (pair) {
+		var n = pair[0];
+		if (!Object.prototype.hasOwnProperty.call(raw, "host" + n)) return;
+		var s = build(pair[1], n);
+		servers.push(s);
+		if (Array.isArray(rp[n])) recentPaths[s.id] = rp[n].slice(0, MAX_RECENT_PATHS);
+	});
+
+	return { servers: servers, defaultServerId: s1.id, recentPaths: recentPaths };
+}
+
 function readRecentPaths() {
 	return new Promise((resolve) => {
 		browser.storage.local.get(config.command.guess, (item) => {
@@ -229,4 +282,12 @@ function clearRecentPaths(server) {
 		rp[server] = [];
 		return browser.storage.local.set({ recentPaths: rp });
 	});
+}
+
+// CommonJS export shim — no effect in the extension (no `module`), lets tests require() this file.
+if (typeof module !== "undefined" && module.exports) {
+	module.exports = {
+		MAX_RECENT_PATHS, SERVER_DEFAULTS, newServerId, migrateSchema,
+		readRecentPaths, getRecentPaths, addRecentPath, removeRecentPath, clearRecentPaths,
+	};
 }
