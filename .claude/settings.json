@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.file_path // \"\"' | { read -r f; case \"$f\" in *App/data/ariang/*|*App/lib/jschardet.min.js|*App/lib/aria.js|*App/lib/polygoat.js|*Bin/*) jq -n --arg f \"$f\" '{hookSpecificOutput:{hookEventName:\"PreToolUse\",permissionDecision:\"deny\",permissionDecisionReason:($f + \" is vendored/upstream code, kept pristine for merges (see CLAUDE.md). Edit NG code under App/ instead.\")}}' ;; esac; }"
+          }
+        ]
+      }
+    ]
+  }
+}
