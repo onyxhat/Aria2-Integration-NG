@@ -937,12 +937,14 @@ function loadSettings() {
 }
 
 (function() {
-	browser.storage.local.get("enabled", function(item) {
-		changeState(item.enabled);
+	runMigration().catch(function (e) { console.log("migration error", e); }).then(function () {
+		browser.storage.local.get("enabled", function(item) {
+			changeState(item.enabled);
+		});
+		browser.browserAction.setBadgeBackgroundColor({color: [0,0,0,100]});
+		loadSettings();
+		browser.runtime.onMessage.addListener(handleMessage);
 	});
-	browser.browserAction.setBadgeBackgroundColor({color: [0,0,0,100]});
-	loadSettings();
-	browser.runtime.onMessage.addListener(handleMessage);
 })();
 
 
