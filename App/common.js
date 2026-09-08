@@ -88,6 +88,20 @@ function sendTo(url, fileName, filePath, header, serverId) {
 	});
 }
 
+function testServer(s) {
+	var proto = (s.protocol || "").toLowerCase();
+	var sec = proto == "https" || proto == "wss";
+	var aria2 = new Aria2({ host: s.host, port: s.port, secure: sec, secret: s.token, path: "/" + s.interf });
+	var isWs = proto == "ws" || proto == "wss";
+	var probe = isWs
+		? aria2.open().then(function () { aria2.close(); })
+		: aria2.getVersion();
+	return probe.then(
+		function () { return { ok: true }; },
+		function (e) { return { ok: false, error: String((e && e.message) || e || "unreachable") }; }
+	);
+}
+
 function save(url, fileName, filePath, header, as, wid, incog) {
 	if (fileName != "") {
 		var downloading = browser.downloads.download({
@@ -187,6 +201,8 @@ function handleMessage(request, sender, sendResponse) {
 				response: "send success"
 			});
 			break;
+		case "testServer":
+			return testServer(request.server);
 		default:
 			console.log("Message from the content script: " + request.get);
 			sendResponse({
@@ -526,127 +542,78 @@ function changeState(enabled) {
 	});
 }
 function cmCallback (info, tab) {
-	var server = info.menuItemId.slice(1);
-	var url = (info.parentMenuItemId === 'open-video' ? info.srcUrl : info.linkUrl);
-	if (url == ""){
-		notify(browser.i18n.getMessage("error_notSupported"))
+	var id = info.menuItemId;
+	var serverId = null;
+	if (id.indexOf('dl:') === 0 || id.indexOf('dv:') === 0) serverId = id.slice(3);
+
+	var isVideo = (info.parentMenuItemId === 'open-video' || id === 'open-video' || id.indexOf('dv:') === 0);
+	var url = isVideo ? info.srcUrl : info.linkUrl;
+	if (!url) {
+		notify(browser.i18n.getMessage("error_notSupported"));
+		return;
 	}
-	else {
-		browser.cookies.getAll({url:url}).then((cookies) => {
-			var requestHeaders = [];
-			requestHeaders[0] = ("Referer: " + info.pageUrl + "\"");
-			requestHeaders[1] = ("Cookie: ");
-			var cookie = {};
-			for (cookie of cookies) {
-				requestHeaders[1] += cookie.name;
-				requestHeaders[1] += "="
-				requestHeaders[1] += cookie.value;
-				requestHeaders[1] += "; "
+
+	function dispatch(requestHeaders) {
+		var d = {
+			url: url,
+			fileName: getFileNameURL(url),
+			fileSize: "",
+			requestHeaders: requestHeaders
+		};
+		browser.storage.local.get(config.command.guess, function (item) {
+			if (item.cmDownPanel) {
+				downloadPanel(d);
+			} else {
+				(serverId ? Promise.resolve(serverId) : getDefaultServer().then(function (s) { return s && s.id; }))
+					.then(function (sid) { sendTo(url, "", "", requestHeaders, sid); });
 			}
-			var d = {
-				url: url,
-				fileName: getFileNameURL(url),
-				fileSize: "",
-				requestHeaders: requestHeaders
-			}
-			browser.storage.local.get(config.command.guess, item => {
-				if (item.cmDownPanel) {
-					downloadPanel(d);
-				}
-				else {
-					sendTo(url,"","",requestHeaders,server);
-				}
-			});
-			console.log(info);
-		}, (e) => {
-			console.log("Error", e);
-			var requestHeaders = "[";
-			requestHeaders += ("\"Referer: " + info.pageUrl + "\"");
-			requestHeaders += "]";
-			var d = {
-				url: url,
-				fileName: getFileNameURL(url),
-				fileSize: "",
-				requestHeaders: requestHeaders
-			}
-			browser.storage.local.get(config.command.guess, item => {
-				if (item.cmDownPanel) {
-					downloadPanel(d);
-				}
-				else {
-					sendTo(url,"","",requestHeaders,server);
-				}
-			});
-			console.log(info);
-		} );;
+		});
 	}
+
+	browser.cookies.getAll({ url: url }).then(function (cookies) {
+		var requestHeaders = [];
+		requestHeaders[0] = ("Referer: " + info.pageUrl + "\"");
+		requestHeaders[1] = ("Cookie: ");
+		for (var i = 0; i < cookies.length; i++) {
+			requestHeaders[1] += cookies[i].name + "=" + cookies[i].value + "; ";
+		}
+		dispatch(requestHeaders);
+	}, function () {
+		var requestHeaders = "[\"Referer: " + info.pageUrl + "\"]";
+		dispatch(requestHeaders);
+	});
 }
 function contextMenus (enabled, cmDownPanel){
 	browser.contextMenus.removeAll();
 	browser.contextMenus.onClicked.removeListener(cmCallback);
+	if (!enabled) return;
+
 	var cmTitle = browser.i18n.getMessage("CM_title");
-	var seD = browser.i18n.getMessage("OP_rpcDefault");
-	var se2 = browser.i18n.getMessage("OP_rpc2");
-	var se3 = browser.i18n.getMessage("OP_rpc3");
-	if (enabled){
-		browser.contextMenus.create({
-			id: 'open-link',
-			title: cmTitle,
-			contexts: ['link'],
-			documentUrlPatterns: ['*://*/*']
+	browser.contextMenus.create({
+		id: 'open-link', title: cmTitle, contexts: ['link'], documentUrlPatterns: ['*://*/*']
+	});
+	browser.contextMenus.create({
+		id: 'open-video', title: cmTitle, contexts: ['video', 'audio'], documentUrlPatterns: ['*://*/*']
+	});
+
+	if (!cmDownPanel) {
+		getServers().then(function (servers) {
+			if (servers.length > 1) {
+				servers.forEach(function (s) {
+					var title = (s.name && s.name.trim()) || (s.host + ":" + s.port);
+					browser.contextMenus.create({
+						id: 'dl:' + s.id, title: title, contexts: ['link'],
+						parentId: 'open-link', documentUrlPatterns: ['*://*/*']
+					});
+					browser.contextMenus.create({
+						id: 'dv:' + s.id, title: title, contexts: ['video', 'audio'],
+						parentId: 'open-video', documentUrlPatterns: ['*://*/*']
+					});
+				});
+			}
+			browser.contextMenus.onClicked.addListener(cmCallback);
 		});
-		
-		browser.contextMenus.create({
-			id: 'open-video',
-			title: cmTitle,
-			contexts: ['video', 'audio'],
-			documentUrlPatterns: ['*://*/*']
-		});
-		
-		if (!cmDownPanel){
-			browser.contextMenus.create({
-				id: 'A1',
-				title: seD,
-				contexts: ['link'],
-				parentId: 'open-link',
-				documentUrlPatterns: ['*://*/*']
-			});
-			browser.contextMenus.create({
-				id: 'A2',
-				title: se2,
-				contexts: ['link'],
-				parentId: 'open-link',
-				documentUrlPatterns: ['*://*/*']
-			});
-			browser.contextMenus.create({
-				id: 'A3',
-				title: se3,
-				contexts: ['link'],
-				parentId: 'open-link',
-				documentUrlPatterns: ['*://*/*']
-			});
-			browser.contextMenus.create({
-				id: 'B1',
-				title: seD,
-				contexts: ['video', 'audio'],
-				parentId: 'open-video',
-				documentUrlPatterns: ['*://*/*']
-			});
-			browser.contextMenus.create({
-				id: 'B2',
-				title: se2,
-				contexts: ['video', 'audio'],
-				parentId: 'open-video',
-				documentUrlPatterns: ['*://*/*']
-			});
-			browser.contextMenus.create({
-				id: 'B3',
-				title: se3,
-				contexts: ['video', 'audio'],
-				parentId: 'open-video',
-				documentUrlPatterns: ['*://*/*']
-			});
-		}
+	} else {
 		browser.contextMenus.onClicked.addListener(cmCallback);
 	}
 }
