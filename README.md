@@ -4,10 +4,12 @@ A Firefox add-on that integrates the browser's downloads with an [Aria2][aria2]
 RPC server, bundling the [AriaNg][ariang] web UI.
 
 **NG** is a personal fork of [Aria2 Download Manager Integration][upstream]
-(by Ross Wang). It is **not published on AMO** — it is signed through Mozilla's
-unlisted channel and installed manually (see *Build & install* below).
+(by Ross Wang), maintained by Isaac Springer. It is **not published on AMO** —
+it is signed through Mozilla's unlisted channel and installed manually (see
+*Build & install* below).
 
-Extension ID: `aria2-integration-ng@springer`
+- Source / homepage: <https://github.com/onyxhat/Aria2-Integration-NG>
+- Extension ID: `aria2-integration-ng@springer`
 
 ## What NG changes
 
@@ -58,4 +60,4 @@ restart, and its `storage.local` does not persist).
 
 [aria2]: https://github.com/aria2/aria2
 [ariang]: https://github.com/mayswind/AriaNg
-[upstream]: https://addons.mozilla.org/firefox/addon/aria2-integration/
+[upstream]: https://github.com/RossWang/Aria2-Integration

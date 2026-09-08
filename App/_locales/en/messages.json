@@ -10,12 +10,12 @@
 	},
 	
 	"translator": {
-		"message": "Translator: Ross Wang",
+		"message": "Translator: Isaac Springer",
 		"description": ""
 	},
-	
+
 	"translatorMessage": {
-		"message": "English is not my native language, so there may have something wrong in the translation. Please help me correct the mistakes.",
+		"message": "",
 		"description": "you can leave it blank if you have nothing to say"
 	},
 	
@@ -416,7 +416,7 @@
 	},
 	
 	"OP_title": {
-		"message": "Aria2 Download Manager Integration Options",
+		"message": "Aria2 Integration NG Options",
 		"description": ""
 	},
 	
