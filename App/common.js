@@ -34,7 +34,9 @@ function sendTo(url, fileName, filePath, header, serverId) {
 				path: "/" + item.interf,
 			};
 			var aria2 = new Aria2(options);
-			isRunning(item, aria2);
+			browser.storage.local.get(["auto", "shutdown"], function (flags) {
+				isRunning({ protocol: item.protocol, auto: flags.auto, shutdown: flags.shutdown }, aria2);
+			});
 
 			filePath = filePath.replace(/\\/g, '\\\\');
 			var settingPath = (item.path || "").replace(/\\/g, '\\\\');
