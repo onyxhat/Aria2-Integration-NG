@@ -366,7 +366,9 @@ async function prepareDownload(d) {
 			downloadPanel(details);
 		}
 		else {
-			sendTo(details.url,details.fileName,"",details.requestHeaders,"1");
+			getDefaultServer().then(function (s) {
+				sendTo(details.url, details.fileName, "", details.requestHeaders, s && s.id);
+			});
 		}
 	});
 	
