@@ -17,8 +17,10 @@ Edit only the NG/extension code:
 - `App/_locales/*/messages.json`, `App/manifest.json`
 
 Do **not** edit — third-party / upstream, kept pristine for merges:
-- `App/data/ariang/**` (bundled AriaNg UI), `App/lib/jschardet.min.js`,
-  `App/lib/aria.js`, `App/lib/polygoat.js` (see `THIRDPARTY.md`)
+- `App/data/ariang/**` (bundled AriaNg UI, a built release artifact) — refresh it
+  only via `scripts/update-ariang.sh [version]`, never by hand;
+  `App/data/ariang/.ariang-version` records the bundled release
+- `App/lib/jschardet.min.js`, `App/lib/aria.js`, `App/lib/polygoat.js` (see `THIRDPARTY.md`)
 - `Bin/**` (upstream Windows helper binaries/scripts, not part of the extension)
 
 ## Feature workflow
