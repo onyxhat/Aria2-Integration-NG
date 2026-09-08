@@ -10,6 +10,13 @@ const tools = require('../App/lib/tools.js');
 // deterministic id generator for migration tests
 function counter() { let n = 0; return () => 'id-' + (++n); }
 
+// Re-require tools.js with a fresh browser stub per test (busts the require cache).
+function loadToolsWith(initial) {
+	global.browser = makeBrowserStub(initial);
+	delete require.cache[require.resolve('../App/lib/tools.js')];
+	return require('../App/lib/tools.js');
+}
+
 test('SERVER_DEFAULTS shape', () => {
 	assert.deepEqual(tools.SERVER_DEFAULTS, {
 		name: '', protocol: 'ws', host: '127.0.0.1', port: '6800', interf: 'jsonrpc', token: '', path: '',
@@ -83,4 +90,65 @@ test('migrateSchema: caps migrated path lists at 10', () => {
 	const out = tools.migrateSchema({ host: 'h', port: '1', protocol: 'ws', interf: 'jsonrpc', recentPaths: { '1': eleven } }, { makeId: counter() });
 	assert.equal(out.recentPaths['id-1'].length, 10);
 	assert.equal(out.recentPaths['id-1'][0], '/p0');
+});
+
+test('getServers / getServer / getDefaultServer', async () => {
+	const t = loadToolsWith({ servers: [{ id: 'a', host: 'h1' }, { id: 'b', host: 'h2' }], defaultServerId: 'b' });
+	assert.equal((await t.getServers()).length, 2);
+	assert.equal((await t.getServer('b')).host, 'h2');
+	assert.equal(await t.getServer('zzz'), undefined);
+	assert.equal((await t.getDefaultServer()).id, 'b');
+});
+
+test('getDefaultServer falls back to first server on stale id', async () => {
+	const t = loadToolsWith({ servers: [{ id: 'a' }, { id: 'b' }], defaultServerId: 'gone' });
+	assert.equal((await t.getDefaultServer()).id, 'a');
+	const empty = loadToolsWith({});
+	assert.equal(await empty.getDefaultServer(), undefined);
+});
+
+test('saveServers prunes orphaned recentPaths keys', async () => {
+	const t = loadToolsWith({ recentPaths: { a: ['/x'], b: ['/y'], c: ['/z'] } });
+	await t.saveServers([{ id: 'a' }, { id: 'c' }]);
+	assert.deepEqual(global.browser.storage.local._dump().recentPaths, { a: ['/x'], c: ['/z'] });
+});
+
+test('validateServers flags missing host, missing/non-numeric port, empty list', () => {
+	const t = loadToolsWith({});
+	assert.deepEqual(t.validateServers([]), ['At least one server is required.']);
+	const errs = t.validateServers([
+		{ name: 'ok', protocol: 'ws', host: 'h', port: '6800', interf: 'jsonrpc' },
+		{ name: 'bad', protocol: 'ws', host: '', port: 'abc', interf: 'jsonrpc' },
+	]);
+	assert.ok(errs.some((e) => /bad: host is required/.test(e)));
+	assert.ok(errs.some((e) => /bad: port must be numeric/.test(e)));
+	assert.equal(errs.some((e) => /^ok:/.test(e)), false);
+});
+
+test('addRecentPath works for a server id with no existing history and caps at 10', async () => {
+	const t = loadToolsWith({ recentPaths: {} });
+	for (let i = 0; i < 12; i++) await t.addRecentPath('newid', '/p' + i);
+	const list = await t.getRecentPaths('newid');
+	assert.equal(list.length, 10);
+	assert.equal(list[0], '/p11'); // newest first
+});
+
+test('runMigration converts a legacy blob and is idempotent', async () => {
+	const t = loadToolsWith({
+		initialize: true,
+		protocol: 'ws', host: 'h1', port: '6800', interf: 'jsonrpc', token: '', path: '',
+		protocol2: 'ws', host2: 'h2', port2: '6802', interf2: 'jsonrpc', token2: '', path2: '',
+		recentPaths: { '1': ['/a'], '2': ['/b'], '3': [] },
+	});
+	await t.runMigration();
+	let d = global.browser.storage.local._dump();
+	assert.equal(d.schemaVersion, 2);
+	assert.equal(d.servers.length, 2);
+	assert.equal('host2' in d, false);
+	assert.equal('path' in d, false);
+	const firstId = d.servers[0].id;
+	assert.deepEqual(d.recentPaths[firstId], ['/a']);
+
+	await t.runMigration(); // second run is a no-op
+	assert.deepEqual(global.browser.storage.local._dump().servers.map((s) => s.id), d.servers.map((s) => s.id));
 });

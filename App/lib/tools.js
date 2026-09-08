@@ -239,16 +239,88 @@ function migrateSchema(raw, opts) {
 	return { servers: servers, defaultServerId: s1.id, recentPaths: recentPaths };
 }
 
+// Storage-backed helpers (Promise-returning; read/write via browser.storage.local).
+
+function getServers() {
+	return browser.storage.local.get("servers").then(function (item) {
+		return Array.isArray(item.servers) ? item.servers : [];
+	});
+}
+
+function getServer(id) {
+	return getServers().then(function (servers) {
+		return servers.filter(function (s) { return s.id === id; })[0];
+	});
+}
+
+function getDefaultServer() {
+	return Promise.all([getServers(), browser.storage.local.get("defaultServerId")]).then(function (r) {
+		var servers = r[0], defaultServerId = r[1].defaultServerId;
+		if (servers.length === 0) return undefined;
+		return servers.filter(function (s) { return s.id === defaultServerId; })[0] || servers[0];
+	});
+}
+
+function setDefaultServer(id) {
+	return browser.storage.local.set({ defaultServerId: id });
+}
+
+function saveServers(servers) {
+	return browser.storage.local.get("recentPaths").then(function (item) {
+		var rp = (item.recentPaths && typeof item.recentPaths === "object") ? item.recentPaths : {};
+		var ids = {};
+		servers.forEach(function (s) { ids[s.id] = true; });
+		var pruned = {};
+		Object.keys(rp).forEach(function (k) { if (ids[k]) pruned[k] = rp[k]; });
+		return browser.storage.local.set({ servers: servers, recentPaths: pruned });
+	});
+}
+
+function validateServers(servers) {
+	var errors = [];
+	if (!Array.isArray(servers) || servers.length === 0) {
+		errors.push("At least one server is required.");
+		return errors;
+	}
+	servers.forEach(function (s, i) {
+		var label = (s.name && s.name.trim()) || ((s.host || "") + ":" + (s.port || "")) || ("Server " + (i + 1));
+		if (!s.protocol || !s.protocol.trim()) errors.push(label + ": protocol is required.");
+		if (!s.host || !s.host.trim()) errors.push(label + ": host is required.");
+		if (!s.port || !String(s.port).trim()) errors.push(label + ": port is required.");
+		else if (!/^\d+$/.test(String(s.port).trim())) errors.push(label + ": port must be numeric.");
+		if (!s.interf || !s.interf.trim()) errors.push(label + ": interface is required.");
+	});
+	return errors;
+}
+
+function runMigration() {
+	return browser.storage.local.get(null).then(function (raw) {
+		if (Array.isArray(raw.servers) && raw.schemaVersion >= 2) return undefined;
+		var out = migrateSchema(raw, { names: {
+			s1: browser.i18n.getMessage("OP_rpcDefault") || "Default Server",
+			s2: browser.i18n.getMessage("OP_rpc2") || "RPC Server 2",
+			s3: browser.i18n.getMessage("OP_rpc3") || "RPC Server 3",
+		} });
+		return browser.storage.local.set({
+			servers: out.servers,
+			defaultServerId: out.defaultServerId,
+			recentPaths: out.recentPaths,
+			schemaVersion: 2,
+		}).then(function () {
+			return browser.storage.local.remove([
+				"path", "protocol", "host", "port", "interf", "token",
+				"path2", "protocol2", "host2", "port2", "interf2", "token2",
+				"path3", "protocol3", "host3", "port3", "interf3", "token3",
+			]);
+		});
+	});
+}
+
 function readRecentPaths() {
-	return new Promise((resolve) => {
-		browser.storage.local.get(config.command.guess, (item) => {
+	return new Promise(function (resolve) {
+		browser.storage.local.get("recentPaths", function (item) {
 			var rp = item.recentPaths;
-			if (!rp || typeof rp != "object")
-				rp = { "1": [], "2": [], "3": [] };
-			["1", "2", "3"].forEach((s) => {
-				if (!Array.isArray(rp[s]))
-					rp[s] = [];
-			});
+			if (!rp || typeof rp != "object") rp = {};
 			resolve(rp);
 		});
 	});
@@ -263,7 +335,7 @@ function addRecentPath(server, p) {
 	if (p == "")
 		return Promise.resolve();
 	return readRecentPaths().then((rp) => {
-		var list = rp[server].filter((x) => x !== p);
+		var list = (rp[server] || []).filter((x) => x !== p);
 		list.unshift(p);
 		rp[server] = list.slice(0, MAX_RECENT_PATHS);
 		return browser.storage.local.set({ recentPaths: rp });
@@ -272,7 +344,7 @@ function addRecentPath(server, p) {
 
 function removeRecentPath(server, p) {
 	return readRecentPaths().then((rp) => {
-		rp[server] = rp[server].filter((x) => x !== p);
+		rp[server] = (rp[server] || []).filter((x) => x !== p);
 		return browser.storage.local.set({ recentPaths: rp });
 	});
 }
@@ -287,7 +359,8 @@ function clearRecentPaths(server) {
 // CommonJS export shim — no effect in the extension (no `module`), lets tests require() this file.
 if (typeof module !== "undefined" && module.exports) {
 	module.exports = {
-		MAX_RECENT_PATHS, SERVER_DEFAULTS, newServerId, migrateSchema,
+		MAX_RECENT_PATHS, SERVER_DEFAULTS, newServerId, migrateSchema, runMigration,
+		getServers, getServer, getDefaultServer, saveServers, setDefaultServer, validateServers,
 		readRecentPaths, getRecentPaths, addRecentPath, removeRecentPath, clearRecentPaths,
 	};
 }
