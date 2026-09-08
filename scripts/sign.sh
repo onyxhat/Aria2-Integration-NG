@@ -9,8 +9,12 @@
 #   AMO_JWT_ISSUER   "JWT issuer" from addons.mozilla.org -> Manage API Keys
 #   AMO_JWT_SECRET   "JWT secret" from the same page
 #
-# e.g.:
+# Provide them either by exporting in the shell:
 #   AMO_JWT_ISSUER=user:12345:67 AMO_JWT_SECRET=abcd... scripts/sign.sh
+# or by putting them in an (uncommitted, gitignored) .env at the repo root:
+#   AMO_JWT_ISSUER=user:12345:67
+#   AMO_JWT_SECRET=abcd...
+# Variables already set in the environment take precedence over .env.
 #
 # Bump "version" in App/manifest.json before each run - AMO rejects a
 # version string it has already signed for this add-on ID.
@@ -20,8 +24,28 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 APP_DIR="$REPO_ROOT/App"
 
-: "${AMO_JWT_ISSUER:?set AMO_JWT_ISSUER (addons.mozilla.org -> Manage API Keys)}"
-: "${AMO_JWT_SECRET:?set AMO_JWT_SECRET (addons.mozilla.org -> Manage API Keys)}"
+# Optionally load credentials from .env at the repo root. Anything already
+# exported in the environment wins; .env only fills in what is unset.
+if [ -f "$REPO_ROOT/.env" ]; then
+	set -a
+	while IFS= read -r _line || [ -n "$_line" ]; do
+		case "$_line" in
+			''|'#'*) continue ;;
+		esac
+		_key="${_line%%=*}"
+		_key="${_key#export }"
+		_key="$(printf '%s' "$_key" | tr -d '[:space:]')"
+		[ -n "$_key" ] || continue
+		if [ -z "${!_key:-}" ]; then
+			eval "$_line"
+		fi
+	done < "$REPO_ROOT/.env"
+	set +a
+	unset _line _key
+fi
+
+: "${AMO_JWT_ISSUER:?set AMO_JWT_ISSUER (export it or add it to .env / Manage API Keys)}"
+: "${AMO_JWT_SECRET:?set AMO_JWT_SECRET (export it or add it to .env / Manage API Keys)}"
 
 VERSION="$(sed -n 's/.*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$APP_DIR/manifest.json" | head -n1)"
 
