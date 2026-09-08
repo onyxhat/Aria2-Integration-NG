@@ -19,9 +19,9 @@
   "background": {
     "scripts": [
       "config.js",
-      "common.js",
+      "/lib/tools.js",
+	  "common.js",
 	  "/lib/aria.js",
-	  "/lib/tools.js",
 	  "/lib/polygoat.js"
     ]
   },
