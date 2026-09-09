@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>Routing Rules</title>
+	<style type="text/css">
+		body { font-family: sans-serif; font-size: 16px; background: #f9f9fa; }
+		p { margin: 3px; }
+		.note { font-size: 80%; color: rgb(127, 127, 127); }
+		.highlight { font-size: 80%; border: solid 2px #2cadff; padding: 7px; margin-bottom: 10px; max-width: 720px; }
+		button { border-style: none; border-radius: 2px; background-color: rgb(44, 173, 255);
+			color: #fff; text-shadow: rgb(0, 64, 91) 0px 0px 0.5px; cursor: pointer; }
+		select { font-size: 13px; }
+		#save { width: 80px; height: 30px; margin-top: 20px; font-size: 18px; }
+		#addRule { height: 28px; padding: 0 12px; font-size: 14px; margin-top: 10px; }
+		.rule { border: 1px solid #d7d8da; border-radius: 3px; margin: 8px 0; background: #fff; max-width: 720px; }
+		.rule .row { display: flex; align-items: center; padding: 8px 10px; gap: 8px; }
+		.rule .row .title { flex: 1; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+		.rule .row.disabled .title { color: #999; text-decoration: line-through; }
+		.rule .body { display: none; padding: 4px 10px 12px 10px; border-top: 1px solid #eee; }
+		.rule.open .body { display: block; }
+		.rule .body label { font-size: 90%; }
+		.rule .body input[type=text] { margin-top: 4px; }
+		.rule .field { margin: 8px 0 4px; font-size: 85%; color: #555; }
+		.rule .name-in { width: 60%; }
+		.condition { display: flex; gap: 6px; align-items: center; margin: 4px 0; }
+		.condition select { flex: 0 0 auto; }
+		.condition input[type=text] { flex: 1; }
+		.action-row { display: flex; gap: 6px; align-items: center; margin: 4px 0; flex-wrap: wrap; }
+		.action-row input[type=text] { flex: 1; min-width: 160px; }
+		.mini { height: 24px; padding: 0 8px; font-size: 13px; }
+		.mini.plain { background: #eee; color: #333; text-shadow: none; }
+		#errors { color: #D22222; font-size: 85%; max-width: 720px; }
+		#errors ul { margin: 4px 0; padding-left: 18px; }
+	</style>
+</head>
+<body>
+	<div class="highlight">
+		<p data-message="OP_rulesIntro">Rules are checked from top to bottom. The first enabled rule
+		whose conditions match sets the download's target server and/or folder.</p>
+	</div>
+
+	<div id="ruleList"></div>
+	<button id="addRule" data-message="OP_rulesAddRule">Add rule</button>
+
+	<div id="errors"></div>
+	<div align="right" style="max-width: 720px;">
+		<span id="status"></span>
+		<button data-message="OP_save" id="save">Save</button>
+	</div>
+
+	<script src="/config.js"></script>
+	<script src="/lib/tools.js"></script>
+	<script src="/lib/rules.js"></script>
+	<script src="rules.js"></script>
+</body>
+</html>
