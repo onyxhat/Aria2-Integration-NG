@@ -163,6 +163,20 @@ test('rule with empty conditions is skipped, next rule still evaluated', () => {
 	assert.equal(ev(meta(), [a, b]).serverId, 's2');
 });
 
+test('opts.lockServerId — rule server override ignored; folder resolves against the locked server', () => {
+	const r = rule({ action: { serverId: 's2', folderMode: 'append', folder: 'isos' } });
+	// no lock: append resolves against the override server s2
+	assert.deepEqual(
+		R.evaluateRules(meta({ baseServerId: 's1' }), [r], SERVERS),
+		{ serverId: 's2', dir: '/srv2/isos' }
+	);
+	// locked to s1 (an explicit context-menu pick): serverId null, folder against s1
+	assert.deepEqual(
+		R.evaluateRules(meta({ baseServerId: 's1' }), [r], SERVERS, { lockServerId: 's1' }),
+		{ serverId: null, dir: '/base/isos' }
+	);
+});
+
 test('server override to a deleted server falls back to null; folder action still applies', () => {
 	const r = rule({ action: { serverId: 'ghost', folderMode: 'append', folder: 'x' } });
 	const out = R.evaluateRules(meta({ baseServerId: 's1' }), [r], [{ id: 's1', path: '/base' }]);

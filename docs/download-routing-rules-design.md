@@ -2,7 +2,7 @@
 
 **Branch:** `feature/rules-engine`
 **Date:** 2026-09-08
-**Status:** approved design, pending implementation
+**Status:** implemented (unit-tested + lint-clean; interactive Firefox smoke test pending)
 
 ## Problem
 
@@ -28,7 +28,7 @@ identical to today.
 | Where rules apply | The two **auto** paths only: context-menu clicks (`cmCallback`) and webRequest interception (`prepareDownload`). The Download Panel path is untouched — it stays fully manual. |
 | MIME / size on the context-menu path | Unknown there (no response headers). Conditions on `mime` / `size` simply never match for context-menu downloads. Documented in the page intro. |
 | Precedence | First **enabled** rule whose conditions pass wins. Conditions within a rule combine with **ALL** (AND) or **ANY** (OR). |
-| Explicit server pick vs. rule | An explicit `dl:`/`dv:` context-menu server choice **wins** over a rule's server override. The rule's *folder* action still applies (relative to the explicitly chosen server). |
+| Explicit server pick vs. rule | An explicit `dl:`/`dv:` context-menu server choice **wins** over a rule's server override (passed to `evaluateRules` as `opts.lockServerId`). The rule's *folder* action still applies, resolved relative to the explicitly chosen server. |
 | Module placement | New standalone `App/lib/rules.js`. **Not** folded into `tools.js` (already large, just took the server refactor; the engine is a cohesive unit with its own test file). |
 | Evaluation | `evaluateRules()` is **pure and synchronous**. Background caches `rules` + `servers` in globals, refreshed in `loadSettings()`. |
 | `sendTo` signature | **Unchanged.** Rules resolve upstream to `{serverId, dir}` and pass in via the existing `serverId` / `filePath` args. |
@@ -120,15 +120,20 @@ server.
 | `"absolute"` | `rule.action.folder` verbatim (empty → `null`). Returned **raw** — `sendTo` already escapes `\` → `\\`. |
 | `"append"` | `effectiveServer.path` (trailing `/`,`\` stripped) + `"/"` + `folder` (leading slashes stripped). Empty server path → just `folder`. Joined with `/` only (aria2 accepts `/` on Windows); no separator conversion. |
 
-### `evaluateRules(meta, rules, servers) → { serverId, dir } | null`
+### `evaluateRules(meta, rules, servers, opts) → { serverId, dir } | null`
 
 - `rules` not an array → `null`. `servers` coerced to `[]`.
+- `opts.lockServerId` (optional): the caller has already fixed the target server
+  (an explicit context-menu pick). Rule server overrides are ignored — a
+  matching rule may still set the folder, resolved against the locked server
+  (which the caller passes as `meta.baseServerId`).
 - Iterate `rules` in order; skip a rule when `enabled === false` or
   `conditions` is empty / not an array.
 - `ok = match === "any" ? conditions.some(match) : conditions.every(match)`.
 - First `ok` rule — resolve and **return immediately**:
-  - server override applied only if `action.serverId` is non-empty **and**
-    present in `servers`; otherwise `serverId: null`.
+  - server override applied only if `action.serverId` is non-empty, **not**
+    locked out by `opts.lockServerId`, **and** present in `servers`; otherwise
+    `serverId: null`.
   - `dir` via `resolveDir` against the effective server.
   - `{ serverId: <uuid|null>, dir: <string|null> }`
 - No match → `null`.
@@ -187,9 +192,9 @@ startup and on every options-page Save (`sendMessage({get:'loadSettings'})`).
 
 - In `dispatch()`'s non-panel branch, after resolving `baseSid`: `buildMeta`
   with `mime: ""`, `size: null`, `filename: getFileNameURL(url)`;
-  `evaluateRules`.
+  `evaluateRules(meta, …, serverId ? { lockServerId: serverId } : null)`.
 - Server: `sid = serverId || res?.serverId || baseSid` — an explicit `dl:`/`dv:`
-  choice wins.
+  choice wins (and `lockServerId` makes `res.serverId` null in that case).
 - Dir: `res?.dir ?? ""`. "append" resolves against whichever server actually
   ends up used.
 

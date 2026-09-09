@@ -586,8 +586,11 @@ function cmCallback (info, tab) {
 							url: url, filename: getFileNameURL(url),
 							mime: "", size: null, baseServerId: baseSid
 						});
-						var res = evaluateRules(meta, rulesCache, serversCache);
-						// an explicit dl:/dv: context-menu server choice wins over a rule's server override
+						// an explicit dl:/dv: context-menu server choice wins over a rule's server
+						// override; a matching rule may still set the folder (resolved against the
+						// chosen server, which is baseSid here).
+						var res = evaluateRules(meta, rulesCache, serversCache,
+							serverId ? { lockServerId: serverId } : null);
 						var sid = serverId || (res && res.serverId) || baseSid;
 						var dir = (res && res.dir != null) ? res.dir : "";
 						sendTo(url, "", dir, requestHeaders, sid);

@@ -59,77 +59,66 @@ Missing key ⇒ `getRules()` returns `[]` ⇒ feature is off.
 - Commit: `docs: add download routing rules design + plan`
 
 ### Task 2: `App/lib/rules.js` + `tests/rules-engine.test.js` (TDD)
-- [ ] Write `tests/rules-engine.test.js` first (failing) — see the case list in
+- [x] Write `tests/rules-engine.test.js` first (failing) — see the case list in
   the design doc §4 / the approved plan's Verification section.
-- [ ] Implement `App/lib/rules.js`:
+- [x] Implement `App/lib/rules.js`:
   - `RULE_DEFAULTS`, `RULE_FIELDS`, `RULE_STRING_OPS`, `RULE_NUMBER_OPS`, `newRuleId()`
   - `parseHumanSize(v)` — base-1024, `NaN` on failure
   - `buildMeta({ url, filename, mime, size, baseServerId })` — `URL` in try/catch;
     `ext` from filename then path; `mime` lowercased + param-stripped; `size`
     coerced to int or `null`
-  - `evaluateRules(meta, rules, servers)` — ordered, first enabled match wins;
-    unknown string attr never matches; `resolveDir` for off/absolute/append;
-    server override only if present in `servers`; returns `{serverId, dir}` with
-    `null` where unset, or `null`
+  - `evaluateRules(meta, rules, servers, opts)` — ordered, first enabled match
+    wins; unknown string attr never matches; `resolveDir` for
+    off/absolute/append; server override only if present in `servers` and not
+    locked by `opts.lockServerId`; returns `{serverId, dir}` with `null` where
+    unset, or `null`
   - `validateRules(rules, servers?)` — English literal strings
   - `getRules()` (coerce → `[]`), `saveRules(rules)`
   - `module.exports` shim
-- [ ] `node --test tests/` green (new file + existing `rpc-servers.test.js`)
-- Commit: `test: add rules-engine unit tests` + `feat: add download routing rules engine module`
+- [x] `node --test tests/` green — 50 pass (new file + existing `rpc-servers.test.js`)
+- Commits: `feat: add download routing rules engine module` (test + module together)
 
 ### Task 3: `App/manifest.json` load order
-- [ ] `background.scripts`: `"config.js", "/lib/tools.js", "/lib/rules.js", "common.js", "/lib/aria.js", "/lib/polygoat.js"`
-- Commit: `feat: load rules.js in background`
+- [x] `background.scripts`: `"config.js", "/lib/tools.js", "/lib/rules.js", "common.js", "/lib/aria.js", "/lib/polygoat.js"`
+- Commit: folded into Task 4's `feat: route auto downloads through the rules engine`
 
 ### Task 4: `App/common.js` background wiring
-- [ ] Add `var rulesCache = [];` and `var serversCache = [];` near the top globals.
-- [ ] `loadSettings()`: append `getRules().then(r => rulesCache = r);` and
+- [x] `var rulesCache = [];` / `var serversCache = [];` near the top globals.
+- [x] `loadSettings()`: `getRules().then(r => rulesCache = r);` +
   `getServers().then(s => serversCache = s);`
-- [ ] `prepareDownload(d)`: after `details.fileSize = getFileSize(d)`, capture
-  raw `Content-Type` → `details.mime` and raw `Content-Length` →
-  `details.sizeBytes` (`d.responseHeaders.findIndex`). In the non-panel branch,
-  `buildMeta` → `evaluateRules(meta, rulesCache, serversCache)` →
-  `sendTo(url, fileName, res && res.dir != null ? res.dir : "", header, (res && res.serverId) || baseSid)`.
-- [ ] `cmCallback` → `dispatch()` non-panel branch: `buildMeta` with `mime:""`,
-  `size:null`, `filename:getFileNameURL(url)`; `evaluateRules`;
-  `sid = serverId || (res && res.serverId) || baseSid`;
-  `dir = res && res.dir != null ? res.dir : ""`.
-- [ ] `onInstalled` fresh-install branch: add `rules: []` to the `storage.local.set`.
-- [ ] `node --test tests/` still green (regression).
+- [x] `prepareDownload(d)`: capture raw `Content-Type` → `details.mime` and
+  `Content-Length` → `details.sizeBytes`; non-panel branch `buildMeta` →
+  `evaluateRules(meta, rulesCache, serversCache)` → `sendTo` with resolved
+  dir/serverId.
+- [x] `cmCallback` → `dispatch()` non-panel branch: `buildMeta` (`mime:""`,
+  `size:null`); `evaluateRules(meta, …, serverId ? {lockServerId: serverId} : null)`;
+  `sid = serverId || res?.serverId || baseSid`.
+- [x] `onInstalled` fresh-install branch: `rules: []` added to `storage.local.set`.
+- [x] `node --test tests/` still green.
 - Commit: `feat: route auto downloads through the rules engine`
 
 ### Task 5: i18n — `App/_locales/en/messages.json`
-- [ ] Add the `OP_rules*` keys (full list in design doc §4). Match the file's
-  tab indentation and `"message"` / `"description"` shape.
-- [ ] `node -e "JSON.parse(require('fs').readFileSync('App/_locales/en/messages.json'))"` OK
+- [x] Added the `OP_rules*` keys; JSON validates (157 keys).
 - Commit: `feat: add routing rules i18n strings (en)`
 
 ### Task 6: Options nav — `menu.html` / `menu.js`
-- [ ] `menu.html`: `<li id="rules"><a data-message="OP_rules" href="#rules">Routing Rules</a></li>` after `#rpc`.
-- [ ] `menu.js`: add `document.querySelector('#rules').className = "";` to the clear list.
+- [x] `menu.html`: `#rules` `<li>` added after `#rpc`.
+- [x] `menu.js`: `#rules` added to the className-clear list.
 - Commit: `feat: add Routing Rules options nav entry`
 
-### Task 7: `App/data/options/rules.html`
-- [ ] Clone `rpc.html`; adapt `<style>` (`.rule`, `.rule.open .body`,
-  `.condition` flex row, `select`); body = intro / `#ruleList` / `#addRule` /
-  `#errors` / `#status` + `#save`; scripts `/config.js`, `/lib/tools.js`,
-  `/lib/rules.js`, `rules.js`.
-- Commit: `feat: add Routing Rules options page markup`
-
-### Task 8: `App/data/options/rules.js`
-- [ ] Clone `rpc.js` structure. Reuse `msg`, `flash`, `showErrors`, `swap`,
-  `[data-message]` sweep, `DOMContentLoaded` wiring.
-- [ ] `render()` — rule card (header: enabled checkbox, title, ↑/↓, ×; body:
-  name, match select, conditions sub-list with add/remove + field/op/value
-  selects, action row with server select + folder mode select + folder input).
-- [ ] `addRule()`, `removeRow()` (confirm, no last-row guard), `save()`
-  (`validateRules(model, serverOptions)` → `saveRules` →
-  `sendMessage({get:'loadSettings'})` → `flash`), `init()` (`getServers()` →
-  `serverOptions`, `getRules()` → `model`).
-- Commit: `feat: add Routing Rules options page logic`
+### Task 7 + 8: `App/data/options/rules.html` + `rules.js`
+- [x] `rules.html` cloned from `rpc.html` (adapted `<style>`, script order).
+- [x] `rules.js` — `render()` rule cards (enable toggle, title, ↑/↓, ×; name,
+  match select, conditions sub-list, action rows), `addRule` / `removeRow` /
+  `save` / `normalize` / `init`.
+- Commit: `feat: add Routing Rules options page`
 
 ### Task 9: Lint + manual verification
-- [ ] `lint` skill (`web-ext lint` over `App/`) → 0 errors
-- [ ] Manual pass — see design doc §4 / approved plan Verification (Manual)
-- [ ] Flip both docs' Status to `implemented`
+- [x] `web-ext lint` over `App/` → 0 errors; no new warnings/notices from this
+  feature (remaining warnings are pre-existing manifest/Android-API notices).
+- [x] Engine coverage: 50 `node:test` cases + an end-to-end simulation of both
+  `common.js` call sites.
+- [ ] Interactive Firefox smoke test (temporary add-on + running aria2) — see
+  design doc §4 / approved plan Verification (Manual). **Pending — needs a
+  Firefox + aria2 environment.**
 - Commit: `docs: mark routing rules design + plan implemented`

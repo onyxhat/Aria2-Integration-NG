@@ -178,12 +178,17 @@ function resolveDir(rule, effServer) {
 
 // ---- the engine -----------------------------------------------------------
 
-// evaluateRules(meta, rules, servers) -> { serverId, dir } | null
+// evaluateRules(meta, rules, servers, opts) -> { serverId, dir } | null
 //   serverId: a server uuid to switch to, or null (keep the caller's server)
 //   dir:      a destination path string, or null (keep the caller's folder)
-function evaluateRules(meta, rules, servers) {
+//   opts.lockServerId: when set, the caller has already fixed the target server
+//     (e.g. an explicit context-menu pick). Rule server overrides are ignored —
+//     a matching rule may still set the folder, resolved against the locked
+//     server (which the caller passes as meta.baseServerId).
+function evaluateRules(meta, rules, servers, opts) {
 	if (!Array.isArray(rules)) return null;
 	var svs = Array.isArray(servers) ? servers : [];
+	var lock = (opts && opts.lockServerId) || '';
 	meta = meta || {};
 
 	for (var i = 0; i < rules.length; i++) {
@@ -197,7 +202,7 @@ function evaluateRules(meta, rules, servers) {
 			: everyCondition(meta, r.conditions);
 		if (!ok) continue;
 
-		var overrideId = (r.action && r.action.serverId) || '';
+		var overrideId = lock ? '' : ((r.action && r.action.serverId) || '');
 		var validOverride = !!overrideId && svs.some(function (s) { return s && s.id === overrideId; });
 		var effId = validOverride ? overrideId : (meta.baseServerId || '');
 		var effServer = null;
