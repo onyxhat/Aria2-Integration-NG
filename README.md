@@ -21,6 +21,19 @@ it is signed through Mozilla's unlisted channel and installed manually (see
   menu still let you choose the target server per download; the default server
   is used for auto-captured downloads and *Open AriaNg*. Existing 0.4.5
   settings migrate automatically on first run.
+- **Download routing rules.** **Options → Routing Rules** holds an ordered
+  list of rules that pick a target server and/or destination folder for a
+  download from its attributes — URL, host, path, file name, extension, MIME
+  type, or size — with ALL/ANY logic and `contains` / `equals` /
+  `starts` / `ends with` / `is one of` / `matches regex` / numeric-size
+  (`100MB`, `2GiB`, …) operators. A rule's action sets the target server (or
+  keeps the default) and the folder — an absolute path, or a subfolder
+  appended to the server's default path. Rules run on intercepted downloads
+  and *Download with Aria2* clicks **before** the download pop-up: the first
+  enabled matching rule sends straight to aria2 and skips the pop-up, which is
+  shown only when nothing matches. An explicit context-menu server choice
+  still wins over a rule's server. MIME type and file size are unknown for
+  context-menu downloads, so rules keyed on them only affect intercepted ones.
 - **File Path history in the download pop-up.** The *File Path* field is a
   combobox: it pre-fills with the most recently used directory, offers a
   drop-down of previous paths, and still accepts a freshly typed path. History
@@ -31,6 +44,9 @@ it is signed through Mozilla's unlisted channel and installed manually (see
   manually, remove an individual entry, or clear a server's list.
 - **"Download Completed Sound"** moved from the RPC settings page to
   **Options → General**.
+- **Toolbar pop-up** gains a **Preferences** button (next to *Details*) that
+  opens the options page; **Options → About** shows live Aria2 connection
+  status.
 
 Otherwise it tracks upstream. See [CHANGELOG.md](CHANGELOG.md).
 
@@ -62,6 +78,20 @@ version string it has already signed for this add-on ID.
 For a throw-away test without packaging, load `App/manifest.json` via
 `about:debugging` → *This Firefox* → *Load Temporary Add-on* (cleared on
 restart, and its `storage.local` does not persist).
+
+The bundled [AriaNg][ariang] UI under `App/data/ariang/` is a built release
+artifact — refresh it only with `scripts/update-ariang.sh [version]`, never by
+hand. `App/data/ariang/.ariang-version` records the bundled release.
+
+## Tests
+
+The RPC-server and routing-rules logic have dependency-free unit tests
+(`tests/`, using Node's built-in `node:test` with an in-memory
+`browser.storage.local` stub). Run:
+
+```bash
+node --test tests/
+```
 
 ## Reference
 
