@@ -3,7 +3,7 @@
   "description": "__MSG_extensionDescription__",
   "author": "Isaac Springer",
   "homepage_url": "https://github.com/onyxhat/Aria2-Integration-NG",
-  "version": "0.5.2",
+  "version": "0.5.3",
   "default_locale": "en",
   "manifest_version": 2,
   "permissions": [
@@ -52,7 +52,7 @@
   "applications": {
     "gecko": {
       "id": "aria2-integration-ng@springer",
-	  "strict_min_version": "60.0"
+	  "strict_min_version": "61.0"
     }
   }
 }
