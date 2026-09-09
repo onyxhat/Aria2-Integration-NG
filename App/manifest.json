@@ -22,6 +22,7 @@
     "scripts": [
       "config.js",
       "/lib/tools.js",
+	  "/lib/rules.js",
 	  "common.js",
 	  "/lib/aria.js",
 	  "/lib/polygoat.js"
