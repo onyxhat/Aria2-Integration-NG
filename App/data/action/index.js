@@ -52,9 +52,15 @@ function detail() {
 	});
 }
 
+function prefs() {
+	browser.runtime.openOptionsPage();
+	window.close();
+}
+
 function launch() {
 	document.getElementById('switch').addEventListener('change', sw);
 	document.getElementById('detail').addEventListener('click', detail);
+	document.getElementById('prefs').addEventListener('click', prefs);
 	document.querySelectorAll('[data-message]').forEach(n => {
 		n.textContent = browser.i18n.getMessage(n.dataset.message);
 	});

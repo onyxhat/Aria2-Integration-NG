@@ -82,7 +82,12 @@
 		"message": "Details",
 		"description": ""
 	},
-	
+
+	"UI_preferences": {
+		"message": "Preferences",
+		"description": ""
+	},
+
 	"UI_download": {
 		"message": "Download",
 		"description": ""
