@@ -384,24 +384,28 @@ async function prepareDownload(d) {
 	var clId = d.responseHeaders.findIndex(x => x.name.toLowerCase() === "content-length");
 	details.sizeBytes = clId >= 0 ? Number(d.responseHeaders[clId].value) : null;
 
-	// create download panel
+	// A matching rule pre-empts the download panel: send straight to aria2 with
+	// the rule's server/folder. No match -> panel (if enabled), else default server.
 	browser.storage.local.get(config.command.guess, item => {
-		if (item.downPanel) {
-			downloadPanel(details);
-		}
-		else {
-			getDefaultServer().then(function (s) {
-				var baseSid = s && s.id;
-				var meta = buildMeta({
-					url: details.url, filename: details.fileName,
-					mime: details.mime, size: details.sizeBytes, baseServerId: baseSid
-				});
-				var res = evaluateRules(meta, rulesCache, serversCache);
-				var sid = (res && res.serverId) || baseSid;
-				var dir = (res && res.dir != null) ? res.dir : "";
-				sendTo(details.url, details.fileName, dir, details.requestHeaders, sid);
+		getDefaultServer().then(function (s) {
+			var baseSid = s && s.id;
+			var meta = buildMeta({
+				url: details.url, filename: details.fileName,
+				mime: details.mime, size: details.sizeBytes, baseServerId: baseSid
 			});
-		}
+			var res = evaluateRules(meta, rulesCache, serversCache);
+			if (res) {
+				sendTo(details.url, details.fileName,
+					res.dir != null ? res.dir : "",
+					details.requestHeaders, res.serverId || baseSid);
+			}
+			else if (item.downPanel) {
+				downloadPanel(details);
+			}
+			else {
+				sendTo(details.url, details.fileName, "", details.requestHeaders, baseSid);
+			}
+		});
 	});
 	
 	// avoid blank new tab
@@ -577,25 +581,30 @@ function cmCallback (info, tab) {
 			requestHeaders: requestHeaders
 		};
 		browser.storage.local.get(config.command.guess, function (item) {
-			if (item.cmDownPanel) {
-				downloadPanel(d);
-			} else {
-				(serverId ? Promise.resolve(serverId) : getDefaultServer().then(function (s) { return s && s.id; }))
-					.then(function (baseSid) {
-						var meta = buildMeta({
-							url: url, filename: getFileNameURL(url),
-							mime: "", size: null, baseServerId: baseSid
-						});
-						// an explicit dl:/dv: context-menu server choice wins over a rule's server
-						// override; a matching rule may still set the folder (resolved against the
-						// chosen server, which is baseSid here).
-						var res = evaluateRules(meta, rulesCache, serversCache,
-							serverId ? { lockServerId: serverId } : null);
-						var sid = serverId || (res && res.serverId) || baseSid;
-						var dir = (res && res.dir != null) ? res.dir : "";
-						sendTo(url, "", dir, requestHeaders, sid);
+			(serverId ? Promise.resolve(serverId) : getDefaultServer().then(function (s) { return s && s.id; }))
+				.then(function (baseSid) {
+					var meta = buildMeta({
+						url: url, filename: getFileNameURL(url),
+						mime: "", size: null, baseServerId: baseSid
 					});
-			}
+					// an explicit dl:/dv: context-menu server choice wins over a rule's server
+					// override; a matching rule may still set the folder (resolved against the
+					// chosen server, which is baseSid here).
+					var res = evaluateRules(meta, rulesCache, serversCache,
+						serverId ? { lockServerId: serverId } : null);
+					if (res) {
+						// a matching rule pre-empts the panel
+						sendTo(url, "",
+							res.dir != null ? res.dir : "",
+							requestHeaders, serverId || res.serverId || baseSid);
+					}
+					else if (item.cmDownPanel) {
+						downloadPanel(d);
+					}
+					else {
+						sendTo(url, "", "", requestHeaders, baseSid);
+					}
+				});
 		});
 	}
 

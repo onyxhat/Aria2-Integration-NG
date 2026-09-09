@@ -25,7 +25,7 @@ identical to today.
 | Question | Decision |
 |---|---|
 | Match attributes | Download URL, URL host, URL path, filename, file extension, MIME type, file size (bytes). **Not** page/referrer host, **not** container/incognito. |
-| Where rules apply | The two **auto** paths only: context-menu clicks (`cmCallback`) and webRequest interception (`prepareDownload`). The Download Panel path is untouched — it stays fully manual. |
+| Where rules apply | Both **auto** paths: context-menu clicks (`cmCallback`) and webRequest interception (`prepareDownload`). On each, rules are evaluated **before** the Download Panel decision — a matching rule sends straight to aria2 and pre-empts the panel. The panel (when `downPanel` / `cmDownPanel` is on) is the **fall-through** for downloads no rule matches. `DownloadPanel/*` code itself is unchanged (rules don't pre-fill it). |
 | MIME / size on the context-menu path | Unknown there (no response headers). Conditions on `mime` / `size` simply never match for context-menu downloads. Documented in the page intro. |
 | Precedence | First **enabled** rule whose conditions pass wins. Conditions within a rule combine with **ALL** (AND) or **ANY** (OR). |
 | Explicit server pick vs. rule | An explicit `dl:`/`dv:` context-menu server choice **wins** over a rule's server override (passed to `evaluateRules` as `opts.lockServerId`). The rule's *folder* action still applies, resolved relative to the explicitly chosen server. |
@@ -183,20 +183,22 @@ startup and on every options-page Save (`sendMessage({get:'loadSettings'})`).
 - After `details.fileSize = getFileSize(d)`, also capture the raw
   `Content-Type` → `details.mime` and raw `Content-Length` → `details.sizeBytes`
   (same `d.responseHeaders.findIndex` pattern as `getFileSize`).
-- In the non-panel branch: `buildMeta` from
+- Resolve `baseSid` (`getDefaultServer`), `buildMeta` from
   `{ url, filename, mime, size: sizeBytes, baseServerId }`, `evaluateRules`
-  against the caches, then
-  `sendTo(url, fileName, res?.dir ?? "", header, res?.serverId || baseSid)`.
+  against the caches. Then:
+  - `res` (rule matched) → `sendTo(url, fileName, res.dir ?? "", header, res.serverId || baseSid)` — **panel skipped**.
+  - else `item.downPanel` → `downloadPanel(details)`.
+  - else → `sendTo(url, fileName, "", header, baseSid)` (unchanged default).
 
 ### `cmCallback(info, tab)` — context-menu path
 
-- In `dispatch()`'s non-panel branch, after resolving `baseSid`: `buildMeta`
-  with `mime: ""`, `size: null`, `filename: getFileNameURL(url)`;
-  `evaluateRules(meta, …, serverId ? { lockServerId: serverId } : null)`.
-- Server: `sid = serverId || res?.serverId || baseSid` — an explicit `dl:`/`dv:`
-  choice wins (and `lockServerId` makes `res.serverId` null in that case).
-- Dir: `res?.dir ?? ""`. "append" resolves against whichever server actually
-  ends up used.
+- In `dispatch()`, after resolving `baseSid` (explicit `dl:`/`dv:` id or
+  `getDefaultServer`): `buildMeta` with `mime: ""`, `size: null`,
+  `filename: getFileNameURL(url)`;
+  `evaluateRules(meta, …, serverId ? { lockServerId: serverId } : null)`. Then:
+  - `res` (rule matched) → `sendTo(url, "", res.dir ?? "", requestHeaders, serverId || res.serverId || baseSid)` — **panel skipped**. An explicit `dl:`/`dv:` choice still wins (`lockServerId` makes `res.serverId` null); the rule's folder still applies, resolved against the chosen server.
+  - else `item.cmDownPanel` → `downloadPanel(d)`.
+  - else → `sendTo(url, "", "", requestHeaders, baseSid)` (unchanged default).
 
 ### First-run seeding
 
@@ -289,13 +291,14 @@ path normalisation, result shape, context-menu meta, `buildMeta` edge cases,
 `tests/rpc-servers.test.js` stays green.
 
 Manual: temporary add-on in Firefox, two RPC servers, rules exercising the
-context-menu / interception / MIME / size / explicit-choice / panel-unaffected /
+context-menu / interception / MIME / size / explicit-choice / panel-fall-through /
 disable-delete paths. `lint` skill (`web-ext lint`) → 0 errors.
 
 ## Out of scope
 
 - Page/referrer host, container, incognito as match attributes.
-- Applying rules to the Download Panel path.
+- Pre-filling the Download Panel from a rule (a matching rule skips the panel
+  entirely; the panel is only the no-match fall-through).
 - Translating the new keys into de / zh_CN / zh_TW.
 - Drag-and-drop reordering of rules or conditions (↑/↓ is the baseline).
 - Import / export of rules.

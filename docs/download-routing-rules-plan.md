@@ -87,12 +87,12 @@ Missing key ⇒ `getRules()` returns `[]` ⇒ feature is off.
 - [x] `loadSettings()`: `getRules().then(r => rulesCache = r);` +
   `getServers().then(s => serversCache = s);`
 - [x] `prepareDownload(d)`: capture raw `Content-Type` → `details.mime` and
-  `Content-Length` → `details.sizeBytes`; non-panel branch `buildMeta` →
-  `evaluateRules(meta, rulesCache, serversCache)` → `sendTo` with resolved
-  dir/serverId.
-- [x] `cmCallback` → `dispatch()` non-panel branch: `buildMeta` (`mime:""`,
-  `size:null`); `evaluateRules(meta, …, serverId ? {lockServerId: serverId} : null)`;
-  `sid = serverId || res?.serverId || baseSid`.
+  `Content-Length` → `details.sizeBytes`; evaluate rules **before** the panel
+  decision — a matching rule (`res != null`) `sendTo`s straight to aria2 and
+  skips the panel; `downPanel` is the no-match fall-through.
+- [x] `cmCallback` → `dispatch()`: same — `buildMeta` (`mime:""`, `size:null`),
+  `evaluateRules(meta, …, serverId ? {lockServerId: serverId} : null)`, a match
+  pre-empts `cmDownPanel`; explicit `dl:`/`dv:` server still wins.
 - [x] `onInstalled` fresh-install branch: `rules: []` added to `storage.local.set`.
 - [x] `node --test tests/` still green.
 - Commit: `feat: route auto downloads through the rules engine`
