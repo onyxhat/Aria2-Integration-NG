@@ -5,6 +5,7 @@ function hashHandler(ev) {
 		document.querySelector('.iframe').src = location.hash.slice(1) + ".html";
 		document.querySelector('#general').className = "";
 		document.querySelector('#rpc').className = "";
+		document.querySelector('#rules').className = "";
 		document.querySelector('#exception').className = "";
 		document.querySelector('#pathHistory').className = "";
 		document.querySelector('#about').className = "";

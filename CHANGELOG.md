@@ -6,6 +6,64 @@ A personal fork of [Aria2 Download Manager Integration](https://github.com/RossW
 as an unlisted add-on (not on AMO). Extension ID `aria2-integration-ng@springer`.
 Upstream release history is preserved below.
 
+## 0.5.3 (NG) — 2026-09-08
+
+First signed build since 0.4.5; folds in the dynamic RPC server work
+(0.5.0–0.5.2, previously unreleased) plus the new routing rules engine.
+
+### Features
+
+* **Dynamic RPC servers.** The three fixed server slots — each on its own
+  options page behind a pop-out submenu — are replaced by one
+  **Options → RPC Servers** page managing any number of servers as an
+  expandable list: add, rename, reorder, remove, mark one default, and test a
+  connection inline. Per-download server choice (download pop-up drop-down and
+  the *Download with Aria2* context-menu submenu) is kept; the default server
+  is used for auto-captured downloads and *Open AriaNg*. Servers are stored as
+  a UUID-keyed array (`servers`, `defaultServerId`, `schemaVersion: 2`);
+  existing 0.4.5 settings — including per-slot **Path History** — migrate
+  automatically on first run, and the old flat connection keys are removed.
+* **Download routing rules.** New **Options → Routing Rules** page: an ordered
+  list of rules that send a download to a specific server and/or folder based
+  on its attributes — download URL, URL host, URL path, file name, file
+  extension, MIME type, or file size — combined with ALL / ANY logic and
+  operators including `contains`, `does not contain`, `equals`,
+  `starts` / `ends with`, `is one of`, `matches regex`, and numeric size
+  comparisons (`100MB`, `2GiB`, `500000`, …). A rule's action sets the target
+  server (or keeps the default) and the folder — an absolute path, or a
+  subfolder appended to the server's default path. Rules are evaluated on both
+  auto paths (intercepted downloads and *Download with Aria2*) **before** the
+  download pop-up: the first enabled matching rule sends straight to aria2 and
+  skips the pop-up; the pop-up is shown only when no rule matches. An explicit
+  context-menu server choice still wins over a rule's server. MIME type and
+  file size are unknown for context-menu downloads, so rules keyed on them
+  only affect intercepted downloads. No new permissions; stored in a new
+  additive `rules` key (no schema-version change).
+* **Preferences button** in the toolbar pop-up, next to *Details* — opens the
+  add-on's options page.
+* Live Aria2 connection status on **Options → About**.
+
+### Changed
+
+* "Download Completed Sound" moved from the RPC settings page to
+  **Options → General**.
+* The *Download with Aria2* context menu shows a per-server submenu only when
+  more than one server is configured.
+* Bundled **AriaNg updated to 1.3.14**; `App/data/ariang/.ariang-version`
+  now records the bundled release.
+* `applications.gecko.strict_min_version` `58.0` → `61.0`.
+
+### Build tooling
+
+* `scripts/update-ariang.sh [version]` — refresh the bundled AriaNg release
+  artifact under `App/data/ariang/` (never edit it by hand).
+* `tests/` — dependency-free `node --test` suites
+  (`tests/rpc-servers.test.js`, `tests/rules-engine.test.js`) with an
+  in-memory `browser.storage.local` stub. Run `node --test tests/`.
+
+> The next signed build must bump `version` in `App/manifest.json` — AMO
+> rejects a version string it has already signed for this add-on ID.
+
 ## 0.4.5 (NG) — 2026-09-05
 
 First NG build, signed via the AMO unlisted channel.

@@ -9,6 +9,8 @@ var urlFilterA = "";
 var fileTypeFilterB = "";
 var urlFilterB = "";
 var mon;
+var rulesCache = [];
+var serversCache = [];
 
 function sendTo(url, fileName, filePath, header, serverId) {
 	browser.storage.local.get("initialize", function (init) {
@@ -375,17 +377,35 @@ async function prepareDownload(d) {
 	
 	// get file size
 	details.fileSize = getFileSize(d);
-	
-	// create download panel
+
+	// raw MIME type + byte size for the routing rules engine
+	var ctId = d.responseHeaders.findIndex(x => x.name.toLowerCase() === "content-type");
+	details.mime = ctId >= 0 ? d.responseHeaders[ctId].value : "";
+	var clId = d.responseHeaders.findIndex(x => x.name.toLowerCase() === "content-length");
+	details.sizeBytes = clId >= 0 ? Number(d.responseHeaders[clId].value) : null;
+
+	// A matching rule pre-empts the download panel: send straight to aria2 with
+	// the rule's server/folder. No match -> panel (if enabled), else default server.
 	browser.storage.local.get(config.command.guess, item => {
-		if (item.downPanel) {
-			downloadPanel(details);
-		}
-		else {
-			getDefaultServer().then(function (s) {
-				sendTo(details.url, details.fileName, "", details.requestHeaders, s && s.id);
+		getDefaultServer().then(function (s) {
+			var baseSid = s && s.id;
+			var meta = buildMeta({
+				url: details.url, filename: details.fileName,
+				mime: details.mime, size: details.sizeBytes, baseServerId: baseSid
 			});
-		}
+			var res = evaluateRules(meta, rulesCache, serversCache);
+			if (res) {
+				sendTo(details.url, details.fileName,
+					res.dir != null ? res.dir : "",
+					details.requestHeaders, res.serverId || baseSid);
+			}
+			else if (item.downPanel) {
+				downloadPanel(details);
+			}
+			else {
+				sendTo(details.url, details.fileName, "", details.requestHeaders, baseSid);
+			}
+		});
 	});
 	
 	// avoid blank new tab
@@ -561,12 +581,30 @@ function cmCallback (info, tab) {
 			requestHeaders: requestHeaders
 		};
 		browser.storage.local.get(config.command.guess, function (item) {
-			if (item.cmDownPanel) {
-				downloadPanel(d);
-			} else {
-				(serverId ? Promise.resolve(serverId) : getDefaultServer().then(function (s) { return s && s.id; }))
-					.then(function (sid) { sendTo(url, "", "", requestHeaders, sid); });
-			}
+			(serverId ? Promise.resolve(serverId) : getDefaultServer().then(function (s) { return s && s.id; }))
+				.then(function (baseSid) {
+					var meta = buildMeta({
+						url: url, filename: getFileNameURL(url),
+						mime: "", size: null, baseServerId: baseSid
+					});
+					// an explicit dl:/dv: context-menu server choice wins over a rule's server
+					// override; a matching rule may still set the folder (resolved against the
+					// chosen server, which is baseSid here).
+					var res = evaluateRules(meta, rulesCache, serversCache,
+						serverId ? { lockServerId: serverId } : null);
+					if (res) {
+						// a matching rule pre-empts the panel
+						sendTo(url, "",
+							res.dir != null ? res.dir : "",
+							requestHeaders, serverId || res.serverId || baseSid);
+					}
+					else if (item.cmDownPanel) {
+						downloadPanel(d);
+					}
+					else {
+						sendTo(url, "", "", requestHeaders, baseSid);
+					}
+				});
 		});
 	}
 
@@ -626,7 +664,8 @@ function contextMenus (enabled, cmDownPanel){
 			browser.runtime.openOptionsPage();
 			changeState(true);
 			browser.storage.local.set({
-				initialize: false
+				initialize: false,
+				rules: []
 			});
 		}
 		else {
@@ -652,6 +691,10 @@ function loadSettings() {
 		fileTypeFilterB = item.typeFilterB;
 		urlFilterB = item.urlFilterB;
 	});
+	// `rules` / `servers` live outside config.command.guess — refresh their caches
+	// so evaluateRules() stays synchronous on the download hot path.
+	getRules().then(function (r) { rulesCache = r; });
+	getServers().then(function (s) { serversCache = s; });
 }
 
 (function() {

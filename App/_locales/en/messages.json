@@ -82,7 +82,12 @@
 		"message": "Details",
 		"description": ""
 	},
-	
+
+	"UI_preferences": {
+		"message": "Preferences",
+		"description": ""
+	},
+
 	"UI_download": {
 		"message": "Download",
 		"description": ""
@@ -592,6 +597,211 @@
 
 	"OP_remove": {
 		"message": "Remove",
+		"description": ""
+	},
+
+	"OP_rules": {
+		"message": "Routing Rules",
+		"description": ""
+	},
+
+	"OP_rulesIntro": {
+		"message": "Rules are checked from top to bottom. The first enabled rule whose conditions match sets the download's target server and/or folder. If no rule matches, behaviour is unchanged. MIME type and file size are only known for intercepted downloads, so rules using them never match context-menu downloads.",
+		"description": ""
+	},
+
+	"OP_rulesAddRule": {
+		"message": "Add rule",
+		"description": ""
+	},
+
+	"OP_rulesRuleName": {
+		"message": "Name",
+		"description": ""
+	},
+
+	"OP_rulesRuleNamePlaceholder": {
+		"message": "optional label",
+		"description": ""
+	},
+
+	"OP_rulesEnabled": {
+		"message": "Enabled",
+		"description": ""
+	},
+
+	"OP_rulesMatchAll": {
+		"message": "Match ALL conditions",
+		"description": ""
+	},
+
+	"OP_rulesMatchAny": {
+		"message": "Match ANY condition",
+		"description": ""
+	},
+
+	"OP_rulesAddCondition": {
+		"message": "Add condition",
+		"description": ""
+	},
+
+	"OP_rulesRemove": {
+		"message": "Remove rule",
+		"description": ""
+	},
+
+	"OP_rulesRemoveConfirm": {
+		"message": "Remove this rule?",
+		"description": ""
+	},
+
+	"OP_rulesMoveUp": {
+		"message": "Move up",
+		"description": ""
+	},
+
+	"OP_rulesMoveDown": {
+		"message": "Move down",
+		"description": ""
+	},
+
+	"OP_rulesFieldUrl": {
+		"message": "Download URL",
+		"description": ""
+	},
+
+	"OP_rulesFieldHost": {
+		"message": "URL host",
+		"description": ""
+	},
+
+	"OP_rulesFieldPath": {
+		"message": "URL path",
+		"description": ""
+	},
+
+	"OP_rulesFieldFilename": {
+		"message": "File name",
+		"description": ""
+	},
+
+	"OP_rulesFieldExt": {
+		"message": "File extension",
+		"description": ""
+	},
+
+	"OP_rulesFieldMime": {
+		"message": "MIME type",
+		"description": ""
+	},
+
+	"OP_rulesFieldSize": {
+		"message": "File size",
+		"description": ""
+	},
+
+	"OP_rulesOpContains": {
+		"message": "contains",
+		"description": ""
+	},
+
+	"OP_rulesOpNotContains": {
+		"message": "does not contain",
+		"description": ""
+	},
+
+	"OP_rulesOpEquals": {
+		"message": "equals",
+		"description": ""
+	},
+
+	"OP_rulesOpStartsWith": {
+		"message": "starts with",
+		"description": ""
+	},
+
+	"OP_rulesOpEndsWith": {
+		"message": "ends with",
+		"description": ""
+	},
+
+	"OP_rulesOpInList": {
+		"message": "is one of (comma-separated)",
+		"description": ""
+	},
+
+	"OP_rulesOpRegex": {
+		"message": "matches regex",
+		"description": ""
+	},
+
+	"OP_rulesOpGt": {
+		"message": "greater than",
+		"description": ""
+	},
+
+	"OP_rulesOpGte": {
+		"message": "greater than or equal",
+		"description": ""
+	},
+
+	"OP_rulesOpLt": {
+		"message": "less than",
+		"description": ""
+	},
+
+	"OP_rulesOpLte": {
+		"message": "less than or equal",
+		"description": ""
+	},
+
+	"OP_rulesOpEq": {
+		"message": "equals",
+		"description": ""
+	},
+
+	"OP_rulesActionServer": {
+		"message": "Target server",
+		"description": ""
+	},
+
+	"OP_rulesKeepServer": {
+		"message": "Keep default / selected",
+		"description": ""
+	},
+
+	"OP_rulesFolderMode": {
+		"message": "Folder",
+		"description": ""
+	},
+
+	"OP_rulesFolderOff": {
+		"message": "Do not change",
+		"description": ""
+	},
+
+	"OP_rulesFolderAbsolute": {
+		"message": "Set to",
+		"description": ""
+	},
+
+	"OP_rulesFolderAppend": {
+		"message": "Append to server default",
+		"description": ""
+	},
+
+	"OP_rulesFolderPlaceholder": {
+		"message": "e.g. D:\\Downloads\\ISO or a subfolder name",
+		"description": ""
+	},
+
+	"OP_rulesSizeHint": {
+		"message": "e.g. 100MB, 2GB, 500000",
+		"description": ""
+	},
+
+	"OP_rulesInListHint": {
+		"message": "value1, value2, value3",
 		"description": ""
 	}
 }
